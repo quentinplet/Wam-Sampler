@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test</title>
+    <style>
+		div {
+			border:1px solid black;
+			width:100px;
+			height:100px;
+		}
+		#container {
+			width:500px;
+			height:500px;
+		}
+
+		#switchpad0 {
+			position:absolute;
+			top:0px;
+			left:0px;
+		}
+		
+		#switchpad1 {
+			position:absolute;
+			top:400px;
+			left:0px;
+		}
+
+		#switchpad2 {
+			position:absolute;
+			top:400px;
+			left:200px;
+		}
+      </style>
+	  			<script src="../utils/webaudio-controls.js"></script>
+
+</head>
+<body>
+		<div id="container">
+			<webaudio-switch id="switchpad0" draggable=true midilearn="true"  type="kick" width=66.25 height=66.25 src="./pad.png" >
+			</webaudio-switch>
+			<webaudio-switch id="switchpad1"  draggable=true midilearn="true"  type="kick" width=66.25 height=66.25 src="./pad.png" >
+			</webaudio-switch>
+			<webaudio-switch id="switchpad2"  draggable=true midilearn="true"  type="kick" width=66.25 height=66.25 src="./pad.png" >
+			</webaudio-switch>
+			<webaudio-switch id="switchpad3"  draggable=true midilearn="true"  type="kick" width=66.25 height=66.25 src="./pad.png" >
+			</webaudio-switch>
+		</div>
+</body>
+</html>

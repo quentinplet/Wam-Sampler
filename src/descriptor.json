@@ -1,0 +1,10 @@
+{
+    "name": "Sampler (No builder)",
+    "vendor": "WebAudioModule",
+    "description": "Sampler written in native WebAudio nodes",
+    "version": "1.0.0",
+    "apiVersion": "2.0.0",
+    "keywords": [],
+    "isInstrument": true,
+    "website": ""
+}
