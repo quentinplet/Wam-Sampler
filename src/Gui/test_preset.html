@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div>
+        <select name="menu" id="selectMenu"></select>
+        <button id="savePreset">Save Preset</button>
+        <button id="loadPreset">Load Preset</button>
+
+        <button id="displayPreset">Display Preset</button>
+        <ul class="listPreset">
+        </ul>
+    </div>
+    
+    <script type="module">
+        import PresetManager from './presets.js';
+
+        const preset = new PresetManager();
+        // preset.buildPresetMenu('selectMenu');
+
+        PresetManager.buildPresetMenu('selectMenu');
+
+        // const box1 = document.querySelector('.box1');
+        // const preset1 = PresetManager.getPreset('preset1');
+        // console.log(preset1);
+
+        const savePreset = document.querySelector('#savePreset');
+        const loadPreset = document.querySelector('#loadPreset');
+
+        // console.log(PresetManager.getPresets());
+
+
+        const displayPresetBtn = document.querySelector('#displayPreset');
+        displayPresetBtn.addEventListener('click', () => {
+            const preset = PresetManager.getPresetSamples();
+            console.log(preset);
+            displayPreset(preset);
+        });
+
+        function displayPreset(preset) {
+            const listPreset = document.querySelector('.listPreset');
+            listPreset.innerHTML = '';
+            for (const key in preset) {
+                const li = document.createElement('li');
+                li.innerHTML = `${key} : ${preset[key]}`;
+                listPreset.appendChild(li);
+            }
+        }
+
+        savePreset.addEventListener('click', () => {
+            const presetName = document.querySelector('#selectMenu').value;
+            const preset = PresetManager.getPresetSamples();
+            PresetManager.savePresets();
+        });
+
+    </script>
+</body>
+</html>

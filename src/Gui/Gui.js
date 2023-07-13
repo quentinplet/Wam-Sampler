@@ -1733,6 +1733,8 @@ export default class SamplerHTMLElement extends HTMLElement {
 		index1 = index1.match(numberRegex)[0];
 		index2 = index2.match(numberRegex)[0];
 
+		if (index1 === index2) return;
+
 		const div1 = this.shadowRoot.querySelector('#p' + index1);
 		const div2 = this.shadowRoot.querySelector('#p' + index2);
 
@@ -1828,10 +1830,10 @@ export default class SamplerHTMLElement extends HTMLElement {
 		// Si le bouton 1 n'est pas set, on remet le texte par défaut, sinon on le configure
 		if (button1.classList.contains('set')) {
 			this.setButtonDefaultText(index1);
-			
 		}
 		else {
 			this.setSwitchPad(index1);
+			button1.classList.remove('selected');
 		}
 
 		// Si le bouton 2 n'est pas set, on remet le texte par défaut, sinon on le configure
@@ -1840,6 +1842,8 @@ export default class SamplerHTMLElement extends HTMLElement {
 		}
 		else {
 			this.setSwitchPad(index2);
+			this.setLabel(index2,button2);
+			button2.classList.add('selected');
 		}
 		
 		// On remet les listeners
@@ -1910,6 +1914,16 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 		if (padElement === 'WEBAUDIO-SWITCH'){
 			this.setSwitchPad(index2);
+			const padBtn = this.shadowRoot.querySelector('#switchpad' + index2);
+			this.setLabel(index2, padBtn);
+
+			//Remove selected class from all switchpad
+			const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
+			switchPads.forEach((switchPad) => {
+				switchPad.classList.remove('selected');
+			});
+
+			padBtn.classList.add('selected');
 		}
 
 		if (padElement === 'BUTTON') {
@@ -2174,20 +2188,22 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 
 		// Add a button to delete the sample in the top right corner
-		const deleteSample = document.createElement('button');
-		deleteSample.classList.add('deleteSample');
-		deleteSample.id = 'deleteSample' + index;
-		deleteSample.innerHTML = 'X';
-		deleteSample.onmousedown = (e) => {
-			e.preventDefault();
-			e.stopPropagation();
-			if(e.button == 2) {
+		if(buttonText && buttonText.innerHTML !== "") {
+			const deleteSample = document.createElement('button');
+			deleteSample.classList.add('deleteSample');
+			deleteSample.id = 'deleteSample' + index;
+			deleteSample.innerHTML = 'X';
+			deleteSample.onmousedown = (e) => {
 				e.preventDefault();
-				return;
+				e.stopPropagation();
+				if(e.button == 2) {
+					e.preventDefault();
+					return;
+				}
+				this.deleteSample(index);
 			}
-			this.deleteSample(index);
+			switchPad.appendChild(deleteSample);
 		}
-		switchPad.appendChild(deleteSample);
 		
 
 		//play sample
@@ -2326,6 +2342,8 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 		// Supprime le samplePlayer
 		this.samplePlayers[index] = null;
+		SamplerHTMLElement.URLs[index] = '';
+		SamplerHTMLElement.name[index] = '';
 
 		// Supprime le bouton du sample
 		b.innerHTML = '';
@@ -2334,7 +2352,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		b.classList.remove('active');
 
 		// Remet le texte par défaut
-		this.setButtonDefaultText(index);
+		//this.setButtonDefaultText(index);
 	}
 
 
@@ -2615,7 +2633,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			// On supprime les listeners
 			b.onclick = null;
 		}
-		this.setAllButtonDefaultText();
+		//this.setAllButtonDefaultText();
 
 		// On reset le nom du son
 		this.shadowRoot.querySelector('#labelSampleName').innerHTML = "Waveform";
