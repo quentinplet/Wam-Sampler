@@ -19,6 +19,7 @@ export default class SamplePlayer {
         this.pitchValue = 0;
         this.semitones = 0;
         this.enableAdsr = false;
+        this.reversed = false;
 
         // we add an overlay canvas on top of the waveform canvas
         this.canvasOverlay = canvasOverlay;

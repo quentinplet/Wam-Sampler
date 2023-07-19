@@ -6,6 +6,7 @@ window.WebAudioControlsOptions = {
 import '../utils/webaudio-controls.js';
 import BufferLoader from './bufferLoader.js';
 import SamplePlayer from './SamplePlayer.js';
+import PresetManager from './presets.js';
 
 const getBaseURL = () => {
 	return new URL('.', import.meta.url);
@@ -316,6 +317,11 @@ let style = `
 	padding: 0px;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	display: -webkit-box;
+    -webkit-line-clamp: 4; /* number of lines to show */
+    line-clamp: 4;
+	-webkit-box-orient: vertical;
+	overflow-wrap: break-word;
 	color: black;
 	text-align: center;
 	font-family: 'Share Tech Mono', monospace;
@@ -786,8 +792,6 @@ let template = `
 
 		<div id="presets">
 			<select id="selectPreset" class="presetClass">
-				<option value="factoryPreset1">Factory preset 1</option>
-				<option value="factoryPreset2">Factory preset 2</option>
 			</select>
 			<button id="createPreset" class="presetClass">Create preset</button>
 			<button id="savePreset" class="presetClass">Save preset</button>
@@ -955,10 +959,10 @@ export default class SamplerHTMLElement extends HTMLElement {
 		this.canvasContextOverlay = this.canvasOverlay.getContext('2d');
 
 		// On récupère les urls des samples
-		let presetValue = this.loadPresetFromCurrentMenuSelection();
+		// let presetValue = this.loadPresetFromCurrentMenuSelection();
 
 		// On récupère charge les samples
-		this.loadSounds(presetValue);
+		//this.loadSounds(presetValue);
 
 		// On affiche les boutons de presets
 		this.displayPresetButtons();
@@ -1271,31 +1275,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const buttonText = b.querySelector('.button_text');
 
 		label.textContent = buttonText.textContent;
-
-		let stockPresetNames = [];
-
-
-		// console.log("name : " + SamplerHTMLElement.name[index]);
-		// console.log("default name : " + SamplerHTMLElement.defaultName[index]);
-		// console.log("default name tableau : " + SamplerHTMLElement.defaultName);
-		//explorerName = name;
-		let preset1 = {};
-		let preset2 = {};
-
-		preset1.URLs = ['../../audio/preset1/kick.wav', '../../audio/preset1/snare.wav', '../../audio/preset1/hihat.wav', '', '../../audio/preset1/tom1.wav', '../../audio/preset1/tom2.wav', '../../audio/preset1/tom3.wav'];
-		preset1.names = preset1.URLs.map(url => url.split('/').pop().split('.')[0]);
-
-		preset2.URLs = ['../../audio/presetComplet/kick.wav', '../../audio/presetComplet/snare.wav', '../../audio/presetComplet/tom1.wav', '../../audio/presetComplet/tom2.wav', '../../audio/presetComplet/tom3.wav', '../../audio/presetComplet/tom4.wav', '../../audio/presetComplet/hihat1.wav', '../../audio/presetComplet/hihat2.wav', '../../audio/presetComplet/clap1.wav', '../../audio/presetComplet/clap2.wav', '../../audio/presetComplet/crash1.wav', '../../audio/presetComplet/crash2.wav', '../../audio/presetComplet/ride1.wav', '../../audio/presetComplet/ride2.wav', '../../audio/presetComplet/perc1.wav', '../../audio/presetComplet/perc2.wav'];
-		preset2.names = preset2.URLs.map(url => url.split('/').pop().split('.')[0]);
-
-		// if (preset === 'factoryPreset1') {
-		// 	stockPresetNames[index] = preset1.names[index];
-		// } else if (preset === 'factoryPreset2') {
-		// 	stockPresetNames[index] = preset2.names[index];
-		// }
-		// else {
-		// 	stockPresetNames[index] = SamplerHTMLElement.name[index];
-		// }
+		
 		if (!b) {
 			label.ondblclick = () => {
 				return;
@@ -1468,6 +1448,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 						let bl = new BufferLoader(this.plugin.audioContext, arrayOfSoundPreviews, this.shadowRoot, (bufferList) => {
 							// on a chargé les sons, on stocke sous forme de tableau
 							this.decodedSounds = bufferList;
+							this.explorerDecodedSounds = bufferList;
 
 							// Pour chaque son on créé un SamplePlayer
 							this.decodedSounds.forEach((decodedSound, index) => {
@@ -1789,6 +1770,13 @@ export default class SamplerHTMLElement extends HTMLElement {
 			SamplerHTMLElement.URLs[index1] = '';
 		}
 
+		if(SamplerHTMLElement.name[index2] === undefined){ 
+			SamplerHTMLElement.name[index2] = '';
+		}
+		if(SamplerHTMLElement.name[index1] === undefined){
+			SamplerHTMLElement.name[index1] = '';
+		}
+
 		//Swap urls
 		const tempURL = SamplerHTMLElement.URLs[index1];
 		SamplerHTMLElement.URLs[index1] = SamplerHTMLElement.URLs[index2];
@@ -1909,7 +1897,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		// On remet les samplesPlayer
 		//this.samplePlayers[index2] = this.explorerSamplePlayers[index1];
 		//recreate a new SamplePlayer independant of the explorer
-		this.samplePlayers[index2] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", this.decodedSounds[index1], this.plugin.audioNode);
+		this.samplePlayers[index2] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", this.explorerDecodedSounds[index1], this.plugin.audioNode);
 		// On configure le bouton
 
 		if (padElement === 'WEBAUDIO-SWITCH'){
@@ -2222,6 +2210,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			if(!this.player) {
 				return;
 			}
+			console.log(this.player);
 			// console.log('pad' + index + ' clicked');
 			// console.log(this.player);
 			// console.log("switchpad", switchPad);
@@ -2358,15 +2347,49 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 	setPreset = () => {
 		const presetSelectMenu = this.shadowRoot.querySelector('#selectPreset');
+		PresetManager.buildPresetMenu(presetSelectMenu);
+		const currentPreset = PresetManager.getPreset(presetSelectMenu.value);
+		this.loadCurrentPreset(currentPreset);
 
 		// Lorsque le preset est changé, on charge les nouveaux sons
 		presetSelectMenu.onchange = () => {
-			// 
+			//
+			const currentPreset = PresetManager.getPreset(presetSelectMenu.value);
+			// console.log(currentPreset);
 			presetSelectMenu.blur();
 
-			this.loadCompletePreset();
+			this.loadCurrentPreset(currentPreset);
+
+			//this.loadCompletePreset();
 		}
 	}
+
+	loadCurrentPreset(preset) {
+
+		this.samplePlayers = [];
+		this.player = null;
+		this.canvasContext.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		this.canvasContextOverlay.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+		//reset the content of the switchpads
+		const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
+		switchPads.forEach((switchPad) => {
+			switchPad.innerHTML = '';
+			switchPad.classList.remove('set');
+			switchPad.classList.remove('selected');
+			switchPad.classList.remove('active');
+		});
+
+		//reset Waveform sample label name
+		this.shadowRoot.querySelector('#labelSampleName').innerHTML = "Waveform";
+
+
+		//load current preset sounds
+		this.loadSounds(preset);
+		
+	}
+	
+
 
 	loadCompletePreset(presetName) {
 		SamplerHTMLElement.name = [];
@@ -2430,8 +2453,50 @@ export default class SamplerHTMLElement extends HTMLElement {
 			const progressBar = this.shadowRoot.querySelector('#progress' + i);
 			progressBar.value = 0;
 		}
+
+		if(localStorage.presets) {
+			// console.log("local storage a un item", JSON.parse(localStorage.getItem("presets")));
+			const presets = JSON.parse(localStorage.getItem("presets"));
+			const currentPreset = presets.find(preset => preset.name === presetValue.name || preset.name === presetValue);
+			// console.log("current preset", currentPreset);
+			if(currentPreset) {
+				//get urls from current preset
+				// const currentPresetUrls = currentPreset.samples.map(sample => sample.url);
+				const currentPresetUrls = PresetManager.getPresetUrls(currentPreset);
+				const currentPresetNames = PresetManager.getPresetUrlsNames(currentPreset);
+				SamplerHTMLElement.URLs = currentPresetUrls;
+				SamplerHTMLElement.defaultName = PresetManager.getPresetUrlsNames(PresetManager.presets.find(preset => preset.name === presetValue.name || preset.name === presetValue));
+			}
+			let bl = new BufferLoader(this.plugin.audioContext, SamplerHTMLElement.URLs, this.shadowRoot, (bufferList) => {
+				this.decodedSounds = bufferList;
+				this.decodedSounds.forEach((decodedSound, index) => {
+
+					if(decodedSound != undefined) { 
+					this.samplePlayers[index] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", decodedSound, this.plugin.audioNode);
+					if(currentPreset && currentPreset.samples[index].player){
+						SamplerHTMLElement.name[index] = currentPreset.samples[index].player.name;
+						SamplerHTMLElement.defaultName[index] = currentPreset.samples[index].name;
+						this.samplePlayers[index].reversed = currentPreset.samples[index].player.reversed;
+						this.samplePlayers[index].enableAdsr = currentPreset.samples[index].player.enableAdsr;
+					}
+					else if(currentPreset) {
+						SamplerHTMLElement.name[index] = currentPreset.samples[index].name;
+					}
+					this.setSwitchPad(index);
+					this.displayPresetButtons();
+					window.requestAnimationFrame(this.handleAnimationFrame);
+					}
+				});
+			});
+		bl.load();
+		}
 		// Si il n'y a pas de localStorage égale à presetValue, on charge les sons par défaut
-		if (!localStorage.getItem(presetValue)) {
+		if (!localStorage.getItem("presets")) {
+			const currentPresetsUrls = PresetManager.getPresetUrls(presetValue);
+			const currentPresetsNames = PresetManager.getPresetUrlsNames(presetValue);
+			SamplerHTMLElement.URLs = currentPresetsUrls;
+			SamplerHTMLElement.name = currentPresetsNames;
+			SamplerHTMLElement.defaultName = PresetManager.getPresetUrlsNames(PresetManager.presets.find(preset => preset.name === presetValue.name || preset.name === presetValue));
 			// on charge les sons par défaut
 			let bl = new BufferLoader(this.plugin.audioContext, SamplerHTMLElement.URLs, this.shadowRoot, (bufferList) => {
 				// on a chargé les sons, on stocke sous forme de tableau
@@ -2451,75 +2516,76 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 			bl.load();
 		}
-		else {
-			// On récupère le preset à charger
-			const presetToLoad = JSON.parse(localStorage.getItem(presetValue));
+		
+		// else {
+		// 	// On récupère le preset à charger
+		// 	const presetToLoad = JSON.parse(localStorage.getItem(presetValue));
 
-			// on charge les sons du preset
-			let bl = new BufferLoader(this.plugin.audioContext, SamplerHTMLElement.URLs, this.shadowRoot, (bufferList) => {
-				// on a chargé les sons, on stocke sous forme de tableau
-				this.decodedSounds = bufferList;
-				// Pour chaque son on créé un SamplePlayer
-				this.decodedSounds.forEach((decodedSound, index) => {
-					if (decodedSound != undefined) {
-						this.samplePlayers[index] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", decodedSound, this.plugin.audioNode);
+		// 	// on charge les sons du preset
+		// 	let bl = new BufferLoader(this.plugin.audioContext, SamplerHTMLElement.URLs, this.shadowRoot, (bufferList) => {
+		// 		// on a chargé les sons, on stocke sous forme de tableau
+		// 		this.decodedSounds = bufferList;
+		// 		// Pour chaque son on créé un SamplePlayer
+		// 		this.decodedSounds.forEach((decodedSound, index) => {
+		// 			if (decodedSound != undefined) {
+		// 				this.samplePlayers[index] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", decodedSound, this.plugin.audioNode);
 
-						this.samplePlayers[index].reversed = presetToLoad[index].reversed;
+		// 				this.samplePlayers[index].reversed = presetToLoad[index].reversed;
 
-						// On récupère les leftTrim et rightTrim du preset
-						this.samplePlayers[index].leftTrimBar.x = presetToLoad[index].leftTrim;
-						this.samplePlayers[index].rightTrimBar.x = presetToLoad[index].rightTrim;
+		// 				// On récupère les leftTrim et rightTrim du preset
+		// 				this.samplePlayers[index].leftTrimBar.x = presetToLoad[index].leftTrim;
+		// 				this.samplePlayers[index].rightTrimBar.x = presetToLoad[index].rightTrim;
 
 
-						// On récupère les effets du preset
-						this.samplePlayers[index].effects.volumeGain = presetToLoad[index].effects.volumeGain;
-						this.samplePlayers[index].effects.pan = presetToLoad[index].effects.pan;
+		// 				// On récupère les effets du preset
+		// 				this.samplePlayers[index].effects.volumeGain = presetToLoad[index].effects.volumeGain;
+		// 				this.samplePlayers[index].effects.pan = presetToLoad[index].effects.pan;
 
-						this.samplePlayers[index].effects.tone = presetToLoad[index].effects.tone;
+		// 				this.samplePlayers[index].effects.tone = presetToLoad[index].effects.tone;
 
-						this.samplePlayers[index].effects.toneValue = presetToLoad[index].effects.toneValue;
+		// 				this.samplePlayers[index].effects.toneValue = presetToLoad[index].effects.toneValue;
 
-						this.samplePlayers[index].semitones = presetToLoad[index].semitones;
-						//this.samplePlayers[index].pitchValue = presetToLoad[index].pitchValue;
-						//this.samplePlayers[index].effects.pitchRate = presetToLoad[index].effects.pitchRate;
+		// 				this.samplePlayers[index].semitones = presetToLoad[index].semitones;
+		// 				//this.samplePlayers[index].pitchValue = presetToLoad[index].pitchValue;
+		// 				//this.samplePlayers[index].effects.pitchRate = presetToLoad[index].effects.pitchRate;
 			
 
-						//adsr presets
-						this.samplePlayers[index].effects.attackValue = presetToLoad[index].effects.attackValue;
-						this.samplePlayers[index].effects.decayValue = presetToLoad[index].effects.decayValue;
-						this.samplePlayers[index].effects.sustainValue = presetToLoad[index].effects.sustainValue;
-						this.samplePlayers[index].effects.releaseValue = presetToLoad[index].effects.releaseValue;
-						//enable or disable adsr
-						this.samplePlayers[index].enableAdsr = presetToLoad[index].effects.enableAdsr;
+		// 				//adsr presets
+		// 				this.samplePlayers[index].effects.attackValue = presetToLoad[index].effects.attackValue;
+		// 				this.samplePlayers[index].effects.decayValue = presetToLoad[index].effects.decayValue;
+		// 				this.samplePlayers[index].effects.sustainValue = presetToLoad[index].effects.sustainValue;
+		// 				this.samplePlayers[index].effects.releaseValue = presetToLoad[index].effects.releaseValue;
+		// 				//enable or disable adsr
+		// 				this.samplePlayers[index].enableAdsr = presetToLoad[index].effects.enableAdsr;
 
+		// 				SamplerHTMLElement.name[index] = presetToLoad[index].name;
 
-						SamplerHTMLElement.name[index] = presetToLoad[index].name;
+		// 				//modifier ou non les defaultName si l'on sauvegarde un preset
+		// 				SamplerHTMLElement.defaultName[index] = presetToLoad[index].name;
 
-						//modifier ou non les defaultName si l'on sauvegarde un preset
-						SamplerHTMLElement.defaultName[index] = presetToLoad[index].name;
+		// 				// Reverse le son si il est inversé
+		// 				if (this.samplePlayers[index].reversed) {
+		// 					this.samplePlayers[index].decodedSound = this.samplePlayers[index].reverseSound(this.samplePlayers[index].decodedSound);
+		// 				}
 
-						// Reverse le son si il est inversé
-						if (this.samplePlayers[index].reversed) {
-							this.samplePlayers[index].decodedSound = this.samplePlayers[index].reverseSound(this.samplePlayers[index].decodedSound);
-						}
+		// 				//this.setPad(index);
+		// 				this.setSwitchPad(index);
+		// 				this.displayPresetButtons();
 
-						//this.setPad(index);
-						this.setSwitchPad(index);
-						this.displayPresetButtons();
+		// 				window.requestAnimationFrame(this.handleAnimationFrame);
+		// 			}
+		// 		});
+		// 	});
 
-						window.requestAnimationFrame(this.handleAnimationFrame);
-					}
-				});
-			});
-
-			bl.load();
-		}
+		// 	bl.load();
+		// } 
 	}
 
 	
 	loadPresetFromCurrentMenuSelection = () => {
 		const presetName = this.shadowRoot.querySelector('#selectPreset').value;
-		this.loadPresetByName(presetName);
+		this.loadSounds(presetName);
+		//this.loadPresetByName(presetName);
 		return presetName;
 	}
 
@@ -2758,58 +2824,62 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const save = this.shadowRoot.querySelector('#savePreset');
 
 		save.onclick = () => {
-			const preset = this.shadowRoot.querySelector('#selectPreset').value;
+			const preset = this.shadowRoot.querySelector('#selectPreset');
+			const presetName = preset.value;
 
-			// Sauvegarde le preset dans le localStorage avec les URLs et leur leftTrimBar.x et rightTrimBar.x
-			let presetToSave = [];
-			this.samplePlayers.forEach((samplePlayer, index) => {
-				// Si le samplePlayer n'est pas vide
-				if (samplePlayer !== null && samplePlayer !== undefined) {
-					presetToSave[index] = {
-						url: SamplerHTMLElement.URLs[index],
-						name: SamplerHTMLElement.name[index],
+			// // Sauvegarde le preset dans le localStorage avec les URLs et leur leftTrimBar.x et rightTrimBar.x
+			// let presetToSave = [];
+			// this.samplePlayers.forEach((samplePlayer, index) => {
+			// 	// Si le samplePlayer n'est pas vide
+			// 	if (samplePlayer !== null && samplePlayer !== undefined) {
+			// 		presetToSave[index] = {
+			// 			url: SamplerHTMLElement.URLs[index],
+			// 			name: SamplerHTMLElement.name[index],
 
-						reversed: samplePlayer.reversed,
+			// 			reversed: samplePlayer.reversed,
 
-						// Récupère les leftTrimBar.x et rightTrimBar.x de valeur entière
-						leftTrim: Math.round(samplePlayer.leftTrimBar.x),
-						rightTrim: Math.round(samplePlayer.rightTrimBar.x),
+			// 			// Récupère les leftTrimBar.x et rightTrimBar.x de valeur entière
+			// 			leftTrim: Math.round(samplePlayer.leftTrimBar.x),
+			// 			rightTrim: Math.round(samplePlayer.rightTrimBar.x),
 
-						//pitchValue: Math.round(samplePlayer.pitchValue * 100) / 100,
+			// 			//pitchValue: Math.round(samplePlayer.pitchValue * 100) / 100,
 
-						semitones : Math.round(samplePlayer.semitones * 100) / 100,
+			// 			semitones : Math.round(samplePlayer.semitones * 100) / 100,
 
-						// Récupère les effets de chaque samplePlayer (volumeGain, pan, tone) arrondis à 2 chiffres après la virgule
-						effects: {
-							volumeGain: Math.round(samplePlayer.effects.volumeGain * 100) / 100,
-							pan: Math.round(samplePlayer.effects.pan * 100) / 100,
-							tone: Math.round(samplePlayer.effects.tone * 100) / 100,
-							toneValue: Math.round(samplePlayer.effects.toneValue * 100) / 100,
+			// 			// Récupère les effets de chaque samplePlayer (volumeGain, pan, tone) arrondis à 2 chiffres après la virgule
+			// 			effects: {
+			// 				volumeGain: Math.round(samplePlayer.effects.volumeGain * 100) / 100,
+			// 				pan: Math.round(samplePlayer.effects.pan * 100) / 100,
+			// 				tone: Math.round(samplePlayer.effects.tone * 100) / 100,
+			// 				toneValue: Math.round(samplePlayer.effects.toneValue * 100) / 100,
 
-							//pitchRate: Math.round(samplePlayer.effects.pitchRate * 100) / 100,
+			// 				//pitchRate: Math.round(samplePlayer.effects.pitchRate * 100) / 100,
 
-							attackValue: Math.round(samplePlayer.effects.attackValue * 100) / 100,
-							decayValue: Math.round(samplePlayer.effects.decayValue * 100) / 100,
-							sustainValue: Math.round(samplePlayer.effects.sustainValue * 100) / 100,
-							releaseValue: Math.round(samplePlayer.effects.releaseValue * 100) / 100,
-							enableAdsr: samplePlayer.enableAdsr,
-						}
-					}
-				}
-			});
-			localStorage.setItem(preset, JSON.stringify(presetToSave));
+			// 				attackValue: Math.round(samplePlayer.effects.attackValue * 100) / 100,
+			// 				decayValue: Math.round(samplePlayer.effects.decayValue * 100) / 100,
+			// 				sustainValue: Math.round(samplePlayer.effects.sustainValue * 100) / 100,
+			// 				releaseValue: Math.round(samplePlayer.effects.releaseValue * 100) / 100,
+			// 				enableAdsr: samplePlayer.enableAdsr,
+			// 			}
+			// 		}
+			// 	}
+			// });
+			console.log(SamplerHTMLElement);
+			PresetManager.savePresets(presetName, this.samplePlayers, SamplerHTMLElement);
+			// localStorage.setItem(preset, JSON.stringify(presetToSave));
 
-			this.createPresetOptions();
-			this.changePreset(preset);
-			this.displayPresetButtons();
+			// this.createPresetOptions();
+			// this.changePreset(preset);
+			// this.displayPresetButtons();
+			this.loadSounds(preset.value);
 
-			SamplerHTMLElement.URLs = presetToSave.map((sample) => {
-				return sample.url;
-			});
+			// SamplerHTMLElement.URLs = presetToSave.map((sample) => {
+			// 	return sample.url;
+			// });
 
-			SamplerHTMLElement.name = presetToSave.map((sample) => {
-				return sample.name;
-			});
+			// SamplerHTMLElement.name = presetToSave.map((sample) => {
+			// 	return sample.name;
+			// });
 		}
 	}
 

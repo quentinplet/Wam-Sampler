@@ -11,7 +11,7 @@
         <select name="menu" id="selectMenu"></select>
         <button id="savePreset">Save Preset</button>
         <button id="loadPreset">Load Preset</button>
-
+        <button id="clearPreset">clearPreset</button>
         <button id="displayPreset">Display Preset</button>
         <ul class="listPreset">
         </ul>
@@ -19,6 +19,12 @@
     
     <script type="module">
         import PresetManager from './presets.js';
+
+        window.onload = init;
+
+        function init() {
+            setPreset();
+        }
 
         const preset = new PresetManager();
         // preset.buildPresetMenu('selectMenu');
@@ -57,6 +63,29 @@
             const preset = PresetManager.getPresetSamples();
             PresetManager.savePresets();
         });
+
+        const clearPresetBtn = document.querySelector('#clearPreset');
+        clearPresetBtn.addEventListener('click', () => {
+            PresetManager.clearPresets();
+        });
+
+
+        function setPreset() {
+            const presetSelectMenu = document.querySelector('#selectMenu');
+
+            presetSelectMenu.onchange = () => {
+                //get current preset
+                // console.log(presetSelectMenu.value);
+                // console.log(PresetManager.getPreset(presetSelectMenu.value));
+                const currentPreset = PresetManager.getPreset(presetSelectMenu.value);
+                console.log(PresetManager.getPresetUrlsNames(currentPreset));
+                console.log(PresetManager.getPresetUrls(currentPreset));
+                presetSelectMenu.blur();
+                //console.log(`change preset to ${presetSelectMenu.value}`);
+            }
+        }
+
+
 
     </script>
 </body>
