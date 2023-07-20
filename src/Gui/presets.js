@@ -19,6 +19,7 @@ export default class PresetManager {
     {
       name: "preset1",
       type: "Drumkit",
+      isFactoryPresets: true,
       samples: [
         { url: "../../audio/preset1/kick.wav", name: "kick" },
         { url: "../../audio/preset1/snare.wav", name: "snare" },
@@ -31,6 +32,7 @@ export default class PresetManager {
     {
       name: "preset2",
       type: "Drumkit",
+      isFactoryPresets: true,
       samples: [
         { url: "../../audio/preset2/kick.wav", name: "kick" },
         { url: "../../audio/preset2/snare.wav", name: "snare" },
@@ -53,16 +55,16 @@ export default class PresetManager {
     {
       name: "preset3",
       type: "Drumkit",
+      isFactoryPresets: true,
       samples: [{ url: "../../audio/preset2/snare.wav", name: "kick" }],
     },
   ];
 
+  //deep copy of the preset object
+  static presetsToSave = JSON.parse(JSON.stringify(this.presets));
+
   static getPresets() {
     return this.presets;
-  }
-
-  static addPreset(preset) {
-    this.presets.push(preset);
   }
 
   static removePreset(preset) {
@@ -86,8 +88,8 @@ export default class PresetManager {
     return preset.samples.map((s) => s === null ? '' : s.name);
   }
 
-  static getPresetTypes() {
-    return this.presets.map((p) => p.type);
+  static getPresetTypes(presets) {
+    return presets.map((p) => p.type);
   }
 
   static getPresetSamples() {
@@ -98,35 +100,83 @@ export default class PresetManager {
     return this.presets.find((p) => p.name === presetName);
   }
 
+  static addPreset(preset) {
+    this.presets.push(preset);
+  }
+
+  static createPreset(presetName, presetType, samplePlayers, SamplerHTMLElement) {
+    const newPreset = {};
+    newPreset.name = presetName;
+    newPreset.type = presetType;
+    newPreset.isFactoryPresets = false;
+    
+    const samplesURLs = SamplerHTMLElement.URLs;
+    const samplesNames = SamplerHTMLElement.name;
+    const samplesDefaultNames = SamplerHTMLElement.defaultName;
+
+    newPreset.samples = samplesURLs.map((url, index) => {
+      return { url: url, 
+        name: samplesDefaultNames[index],
+        player: {
+          name: samplesNames[index],
+        }
+      }
+    });
+    this.presetsToSave.push(newPreset);
+  }
+
   // save presets to LocalStorage
   static savePresets(presetName, samplePlayers, sampleHTMLElements) {
+    console.log(this.presets);
+    if(localStorage.getItem("presets")) {
+      this.presetsToSave = JSON.parse(localStorage.getItem("presets"));
+    }
+
     const samplesURLs = sampleHTMLElements.URLs;
     const samplesNames = sampleHTMLElements.name;
     const samplesDefaultNames = sampleHTMLElements.defaultName;
+
+    const presetToSave = this.presetsToSave.find((p) => p.name === presetName);
+    presetToSave.samples = samplesURLs.map((url, index) => {
+      return { url: url, 
+        name: samplesDefaultNames[index],
+        player: {
+          name: samplesNames[index],
+        }
+      }
+    });
+    console.log(this.presetsToSave);
+
+  
     
-    //if new samples add this samples urls and names to the preset
-    this.presets.find((p) => p.name === presetName).samples = samplesURLs.map((url, index) => {
-      return { url: url, name: samplesDefaultNames[index]}});
-    console.log(this.presets);
-    this.presets
-      .find((p) => p.name === presetName)
-      .samples.forEach((sample, index) => {
-        sample.url = samplesURLs[index];
-        sample.name = samplesDefaultNames[index];
-        const player = {};
-        player.name = samplesNames[index];
-        // player.reversed = samplePlayers[index].reversed;
-        // player.enableAdsr = samplePlayers[index].enableAdsr;
-        // player.effects = samplePlayers[index].effects;
-        sample.player = player;
+    // //if new samples add this samples urls and names to the preset
+    // this.presets.find((p) => p.name === presetName).samples = samplesURLs.map((url, index) => {
+    //   return { url: url, name: samplesDefaultNames[index]};});
+    // console.log(this.presets);
+    // this.presets
+    //   .find((p) => p.name === presetName)
+    //   .samples.forEach((sample, index) => {
+    //     sample.url = samplesURLs[index];
+    //     sample.name = samplesDefaultNames[index];
+    //     const player = {};
+    //     player.name = samplesNames[index];
+    //     // player.reversed = samplePlayers[index].reversed;
+    //     // player.enableAdsr = samplePlayers[index].enableAdsr;
+    //     // player.effects = samplePlayers[index].effects;
+    //     sample.player = player;
         
-      });
+    //   });
 
     console.log(this.presets);
 
     const index = this.presets.findIndex((p) => p.name === presetName);
-    localStorage.setItem("presets", JSON.stringify(this.presets));
+    localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
     // console.log(samplePlayers);
+  }
+
+  //save all presets
+  static saveAllPresets() {
+    localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
   }
 
   // load presets from LocalStorage
@@ -134,9 +184,39 @@ export default class PresetManager {
     this.presets = JSON.parse(localStorage.getItem("presets"));
   }
 
+  static getPresetsFromLocalStorage() {
+    return JSON.parse(localStorage.getItem("presets"));
+  }
+
+  //load current preset from LocalStorage
+  static loadCurrentPreset(presetValue) {
+    const presets = JSON.parse(localStorage.getItem("presets"));
+    return presets.find(preset => preset.name === presetValue.name || preset.name === presetValue);
+  }
+
+  static isFactoryPreset(presetName) {
+    if(localStorage.getItem("presets")) {
+      this.presetsToSave = JSON.parse(localStorage.getItem("presets"));
+    }
+    return this.presetsToSave.find((p) => p.name === presetName).isFactoryPresets;
+  }
+
   //remove a preset from LocalStorage
   static removePreset(preset) {
-    localStorage.removeItem(preset.name);
+    console.log(preset);
+    this.presetsToSave = this.presetsToSave.filter((p) => p.name !== preset);
+    localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
+    console.log(this.presetsToSave);
+    // localStorage.removeItem(preset.name);
+  }
+
+  static resetPreset (preset) {
+    console.log(this.presets);
+    const factoryPreset = this.presets.find((p) => p.name === preset);
+    const index = this.presets.findIndex((p) => p.name === preset);
+    this.presetsToSave[index] = factoryPreset;
+    // console.log(this.presetsToSave);
+    localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
   }
 
   // clear presets from LocalStorage
@@ -146,8 +226,17 @@ export default class PresetManager {
 
   // Build a preeset menu from the id of a select element. Regroup each preset by type under a submenu
   static buildPresetMenu(select) {
+    let presetsToBuild;
+
+    if (this.getPresetsFromLocalStorage()) {
+      //preset = presetToLoad;
+      presetsToBuild = this.getPresetsFromLocalStorage();
+    } else {
+      presetsToBuild = this.getPresets();
+    }
+ 
     // let select = document.getElementById(selectId);
-    let types = this.getPresetTypes();
+    let types = this.getPresetTypes(presetsToBuild);
 
     // Utiliser un dictionnaire pour stocker les types de preset déjà traités
     let processedTypes = {};
@@ -163,7 +252,7 @@ export default class PresetManager {
         let optgroup = document.createElement("optgroup");
         optgroup.label = type;
 
-        let presets = this.presets.filter((p) => p.type === type);
+        let presets = presetsToBuild.filter((p) => p.type === type);
         presets.forEach((preset) => {
           let option = document.createElement("option");
           option.value = preset.name;
