@@ -997,9 +997,6 @@ export default class SamplerHTMLElement extends HTMLElement {
 		// Ajoute les listeners sur le bouton de sauvegarde des presets
 		this.savePreset();
 
-		// Ajoute les listeners sur le bouton de suppression des presets
-		this.deletePreset();
-
 		// Ajoute les listeners sur le clavier
 		this.setKeyboardPress();
 
@@ -1564,50 +1561,6 @@ export default class SamplerHTMLElement extends HTMLElement {
 	}
 
 	setAllDragAndDrop() {
-		// On ajoute les listeners sur les pads
-		/*
-		this.shadowRoot.querySelectorAll('.padbutton').forEach((b) => {
-			
-			b.setAttribute('draggable', true);
-
-			b.addEventListener('dragstart', (e) => {
-				e.dataTransfer.setData('id', e.target.id);
-			});
-
-			b.addEventListener('dragover', (e) => {
-				e.preventDefault();
-			});
-
-			b.addEventListener('drop', (e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				let btnTargetId;
-				if(e.target.classList.contains('button_content') || e.target.classList.contains('button_text'))  {
-					btnTargetId = b.id;
-				} else {
-					btnTargetId = e.target.id;
-				}
-				const dropIndex = btnTargetId;
-				const dragIndex = e.dataTransfer.getData('id');
-				const dropUrl = e.dataTransfer.getData('url');
-
-				// Si drag index commence par pad
-				if (dragIndex.startsWith('pad')) {
-					if (dragIndex != dropIndex) {
-						this.swapSample(dragIndex, dropIndex);
-					}
-				}
-				else if (dragIndex.startsWith('result')) {
-					this.addSampleToPad(dragIndex, dropIndex, dropUrl);
-				}
-			});
-
-			b.addEventListener('dragend', (e) => {
-				e.preventDefault();
-			});
-		});
-*/
-
 
 		this.shadowRoot.querySelectorAll('.switchpad').forEach((b) => {
 			//b.setAttribute('draggable', true);
@@ -2154,23 +2107,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		if (SamplerHTMLElement.URLs[index].includes('http') && SamplerHTMLElement.name[index]) {
 			buttonText.innerHTML = SamplerHTMLElement.name[index];
 		}
-		else if (SamplerHTMLElement.URLs[index].includes('http') && localStorage.getItem(preset)) {
-			const presetObject = JSON.parse(localStorage.getItem(preset));
-			if (presetObject[index]) {
-				buttonText.innerHTML = presetObject[index].name;
-			}
-		}
-		else if (SamplerHTMLElement.name[index]) {
-			buttonText.innerHTML = SamplerHTMLElement.name[index];
-		}
-		else if (SamplerHTMLElement.URLs[index].includes('/') && SamplerHTMLElement.URLs[index].includes('.')) {
-			SamplerHTMLElement.name[index] = SamplerHTMLElement.URLs[index].split('/').pop().split('.')[0];
-			SamplerHTMLElement.defaultName[index] = JSON.parse(JSON.stringify(SamplerHTMLElement.URLs[index].split('/').pop().split('.')[0]));
-			buttonText.innerHTML = SamplerHTMLElement.URLs[index].split('/').pop().split('.')[0];
-		}
-		else {
-			buttonText.innerHTML = SamplerHTMLElement.URLs[index];
-		}
+	
 		//add p text element
 		buttonText.classList.add('button_text');
 		buttonText.id = 'button_text' + index;
@@ -2354,14 +2291,9 @@ export default class SamplerHTMLElement extends HTMLElement {
 		// console.log("preset local storage", PresetManager.getPresetsFromLocalStorage());
 		const presetSelectMenu = this.shadowRoot.querySelector('#selectPreset');
 		PresetManager.buildPresetMenu(presetSelectMenu);
-		let currentPreset = presetSelectMenu.value;
-		// if(localStorage.getItem("presets")) {
-		// 	currentPreset = PresetManager.loadCurrentPreset(presetSelectMenu.value);
-		// }
-		// else {
-		// 	 currentPreset = PresetManager.getPreset(presetSelectMenu.value);
-		// }
-		this.loadCurrentPreset(currentPreset);
+		let currentPresetName = presetSelectMenu.value;
+
+		this.loadCurrentPreset(currentPresetName);
 
 		// Lorsque le preset est changé, on charge les nouveaux sons
 		presetSelectMenu.onchange = () => {
@@ -2371,31 +2303,18 @@ export default class SamplerHTMLElement extends HTMLElement {
 			// const currentPreset = PresetManager.getPreset(presetSelectMenu.value);
 			// console.log(currentPreset);
 			presetSelectMenu.blur();
-			currentPreset = presetSelectMenu.value;
-			this.loadCurrentPreset(currentPreset);
+			currentPresetName = presetSelectMenu.value;
+			this.loadCurrentPreset(currentPresetName);
 
 			//this.loadCompletePreset();
 		};
 	}
 
 	loadCurrentPreset(presetName) {
-		const deletePreset = this.shadowRoot.querySelector('#deletePreset');
-		let preset;
 
-		if(localStorage.presets) {
-			preset = PresetManager.loadCurrentPreset(presetName);
-		}
-		else{
-			preset = PresetManager.getPreset(presetName);
-		}
+		this.plugin.audioNode.currentPreset = presetName;
+		this.plugin.audioNode.gui = this;
 		
-		if(preset.isFactoryPresets) {
-			deletePreset.innerHTML = "Reset preset";
-		}
-		else if(!preset.isFactoryPresets){
-			deletePreset.innerHTML = "Delete preset";
-		}
-
 		this.samplePlayers = [];
 		this.player = null;
 		this.canvasContext.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -2416,6 +2335,28 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 		//load current preset sounds
 		this.loadSounds(presetName);
+
+		//delete preset button
+		const deletePreset = this.shadowRoot.querySelector('#deletePreset');
+		let preset;
+
+		if(localStorage.presets) {
+			preset = PresetManager.loadCurrentPreset(presetName);
+		}
+		else{
+			preset = PresetManager.getPreset(presetName);
+		}
+		
+		if(preset.isFactoryPresets) {
+			deletePreset.innerHTML = "Reset preset";
+		}
+		else if(!preset.isFactoryPresets){
+			deletePreset.innerHTML = "Delete preset";
+		}
+
+		deletePreset.onclick = () => {this.deletePreset();};
+
+
 		
 	}
 	
@@ -2486,17 +2427,17 @@ export default class SamplerHTMLElement extends HTMLElement {
 			const progressBar = this.shadowRoot.querySelector('#progress' + i);
 			progressBar.value = 0;
 		}
-
 		if(localStorage.presets) {
-			// console.log("local storage a un item", JSON.parse(localStorage.getItem("presets")));
-		
+			
+			// if local storage has presets item, load the selected preset saved in local storage
 			const currentPreset = PresetManager.loadCurrentPreset(presetValue);
 
 			if(currentPreset) {
 				//get urls from current preset
 				// const currentPresetUrls = currentPreset.samples.map(sample => sample.url);
-				const currentPresetUrls = PresetManager.getPresetUrls(currentPreset);
+				let currentPresetUrls = PresetManager.getPresetUrls(currentPreset);
 				const currentPresetNames = PresetManager.getPresetUrlsNames(currentPreset);
+				currentPresetUrls = changePathToAbsolute(currentPresetUrls);
 				SamplerHTMLElement.URLs = currentPresetUrls;
 				SamplerHTMLElement.defaultName = currentPresetNames;
 				console.log(SamplerHTMLElement);
@@ -2508,11 +2449,11 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 					if(decodedSound != undefined) { 
 					this.samplePlayers[index] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", decodedSound, this.plugin.audioNode);
-					if(currentPreset && currentPreset.samples[index].player){
+					if(currentPreset.samples[index].player){
 						SamplerHTMLElement.name[index] = currentPreset.samples[index].player.name;
 						SamplerHTMLElement.defaultName[index] = currentPreset.samples[index].name;
-						this.samplePlayers[index].reversed = currentPreset.samples[index].player.reversed;
-						this.samplePlayers[index].enableAdsr = currentPreset.samples[index].player.enableAdsr;
+						this.samplePlayers[index] = PresetManager.loadPlayerFromCurrentPreset(this.samplePlayers[index], index, currentPreset);
+						// this.samplePlayers[index].reversed = currentPreset.samples[index].player.reversed;
 					}
 					else if(currentPreset) {
 						SamplerHTMLElement.name[index] = currentPreset.samples[index].name;
@@ -2526,17 +2467,18 @@ export default class SamplerHTMLElement extends HTMLElement {
 		bl.load();
 		console.log(SamplerHTMLElement);
 		}
-		// Si il n'y a pas de localStorage égale à presetValue, on charge les sons par défaut
+		// if local Storage doesn't have presets item, load the selected preset from factory presets
 		if (!localStorage.getItem("presets")) {
 			if(presetValue.name) {
 				presetValue = presetValue.name;
 			}
+			
 			const currentPreset = PresetManager.getCurrentPreset(presetValue);
-			const currentPresetsUrls = PresetManager.getPresetUrls(currentPreset);
-			const currentPresetsNames = PresetManager.getPresetUrlsNames(currentPreset);
-			SamplerHTMLElement.URLs = currentPresetsUrls;
-			SamplerHTMLElement.name = currentPresetsNames;
-			SamplerHTMLElement.defaultName = PresetManager.getPresetUrlsNames(PresetManager.presets.find(preset => preset.name === presetValue.name || preset.name === presetValue));
+			
+			SamplerHTMLElement.URLs = PresetManager.getPresetUrls(currentPreset);
+			SamplerHTMLElement.URLs = changePathToAbsolute(SamplerHTMLElement.URLs);
+			SamplerHTMLElement.name = PresetManager.getPresetUrlsNames(currentPreset);
+			SamplerHTMLElement.defaultName = PresetManager.getPresetUrlsNames(PresetManager.getCurrentFactoryPreset(presetValue));
 			// on charge les sons par défaut
 			let bl = new BufferLoader(this.plugin.audioContext, SamplerHTMLElement.URLs, this.shadowRoot, (bufferList) => {
 				// on a chargé les sons, on stocke sous forme de tableau
@@ -2791,15 +2733,15 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 		createPreset.onclick = () => {
 			// Saisie du nom du preset
-			let presetName = prompt("Nom du preset :");
+			let presetName = prompt("Preset name :");
 
 			// Si le nom du preset est vide
 			if (presetName === "") {
-				alert("Le nom du preset ne peut pas être vide");
+				alert("Error : preset name can't be empty");
 			}
 			// Si le nom du preset existe déjà
 			else if (PresetManager.getCurrentPreset(presetName)) {
-				alert("Le nom du preset existe déjà");
+				alert("Error : this preset name already exists");
 			}
 			else if (presetName === null) {
 				// Si l'utilisateur annule la saisie
@@ -2923,7 +2865,8 @@ export default class SamplerHTMLElement extends HTMLElement {
 			// this.createPresetOptions();
 			// this.changePreset(preset);
 			// this.displayPresetButtons();
-			this.loadSounds(preset.value);
+			this.loadCurrentPreset(presetName);
+			// this.loadSounds(preset.value);
 
 			// SamplerHTMLElement.URLs = presetToSave.map((sample) => {
 			// 	return sample.url;
@@ -2936,50 +2879,25 @@ export default class SamplerHTMLElement extends HTMLElement {
 	}
 
 	deletePreset = () => {
-		const deletePreset = this.shadowRoot.querySelector('#deletePreset');
 
-		deletePreset.onclick = () => {
-			
-			this.stopAllSoundsPads();
-			this.stopAllSoundsExplorer();
-			const preset = this.shadowRoot.querySelector('#selectPreset').value;
+		this.stopAllSoundsPads();
+		this.stopAllSoundsExplorer();
+		const preset = this.shadowRoot.querySelector('#selectPreset').value;
 
-			// console.log(preset);
-			console.log(PresetManager.isFactoryPreset(preset));
-			if(PresetManager.isFactoryPreset(preset)) {
-				PresetManager.resetPreset(preset);
-				this.loadCurrentPreset(preset);
-			} else {
-				PresetManager.removePreset(preset);
-			
-			const presetSelectMenu = this.shadowRoot.querySelector('#selectPreset');
-			PresetManager.buildPresetMenu(presetSelectMenu);
-			
-			this.loadCurrentPreset(presetSelectMenu.value);
-			}
-
-
-			// SamplerHTMLElement.name = [];
-
-			// // Supprime le preset du localStorage
-			// localStorage.removeItem(preset);
-
-			// this.createPresetOptions();
-			// // Si le preset supprimé est factoryPreset2, on charge factoryPreset2
-			// if (preset == "factoryPreset2") {
-			// 	SamplerHTMLElement.URLs = SamplerHTMLElement.factoryPreset2URIs;
-			// 	changePathToAbsolute(SamplerHTMLElement.URLs);
-
-			// 	this.changePreset("factoryPreset2");
-			// }
-			// // Sinon on charge factoryPreset1
-			// else {
-			// 	SamplerHTMLElement.URLs = SamplerHTMLElement.factoryPreset1URIs;
-
-			// 	this.changePreset("factoryPreset1");
-			// }
-			// this.displayPresetButtons();
+		// console.log(preset);
+		console.log(PresetManager.isFactoryPreset(preset));
+		if(PresetManager.isFactoryPreset(preset)) {
+			PresetManager.resetPreset(preset);
+			this.loadCurrentPreset(preset);
+		} else {
+			PresetManager.removePreset(preset);
+		
+		const presetSelectMenu = this.shadowRoot.querySelector('#selectPreset');
+		PresetManager.buildPresetMenu(presetSelectMenu);
+		
+		this.loadCurrentPreset(presetSelectMenu.value);
 		}
+		
 	}
 
 	displayPresetButtons = () => {

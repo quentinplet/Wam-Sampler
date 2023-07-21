@@ -61,7 +61,8 @@ export default class PresetManager {
   ];
 
   //deep copy of the preset object
-  static presetsToSave = JSON.parse(JSON.stringify(this.presets));
+  // static presetsToSave = JSON.parse(JSON.stringify(this.presets));
+  static presetsToSave = structuredClone(this.presets);
 
   static getPresets() {
     return this.presets;
@@ -92,100 +93,126 @@ export default class PresetManager {
     return presets.map((p) => p.type);
   }
 
-  static getPresetSamples() {
+  static getPresetFactorySamples() {
     return this.presets.map((p) => p.samples);
   }
 
-  static getCurrentPreset(presetName) {
+  static getCurrentFactoryPreset(presetName) {
     return this.presets.find((p) => p.name === presetName);
   }
 
-  static addPreset(preset) {
+  static addPresetFactory(preset) {
     this.presets.push(preset);
   }
 
-  static createPreset(presetName, presetType, samplePlayers, SamplerHTMLElement) {
-    const newPreset = {};
-    newPreset.name = presetName;
-    newPreset.type = presetType;
-    newPreset.isFactoryPresets = false;
-    
-    const samplesURLs = SamplerHTMLElement.URLs;
-    const samplesNames = SamplerHTMLElement.name;
-    const samplesDefaultNames = SamplerHTMLElement.defaultName;
-
-    newPreset.samples = samplesURLs.map((url, index) => {
-      return { url: url, 
-        name: samplesDefaultNames[index],
-        player: {
-          name: samplesNames[index],
-        }
-      }
-    });
-    this.presetsToSave.push(newPreset);
-  }
-
-  // save presets to LocalStorage
-  static savePresets(presetName, samplePlayers, sampleHTMLElements) {
-    console.log(this.presets);
-    if(localStorage.getItem("presets")) {
-      this.presetsToSave = JSON.parse(localStorage.getItem("presets"));
-    }
-
-    const samplesURLs = sampleHTMLElements.URLs;
-    const samplesNames = sampleHTMLElements.name;
-    const samplesDefaultNames = sampleHTMLElements.defaultName;
-
-    const presetToSave = this.presetsToSave.find((p) => p.name === presetName);
-    presetToSave.samples = samplesURLs.map((url, index) => {
-      return { url: url, 
-        name: samplesDefaultNames[index],
-        player: {
-          name: samplesNames[index],
-        }
-      }
-    });
-    console.log(this.presetsToSave);
-
-  
-    
-    // //if new samples add this samples urls and names to the preset
-    // this.presets.find((p) => p.name === presetName).samples = samplesURLs.map((url, index) => {
-    //   return { url: url, name: samplesDefaultNames[index]};});
-    // console.log(this.presets);
-    // this.presets
-    //   .find((p) => p.name === presetName)
-    //   .samples.forEach((sample, index) => {
-    //     sample.url = samplesURLs[index];
-    //     sample.name = samplesDefaultNames[index];
-    //     const player = {};
-    //     player.name = samplesNames[index];
-    //     // player.reversed = samplePlayers[index].reversed;
-    //     // player.enableAdsr = samplePlayers[index].enableAdsr;
-    //     // player.effects = samplePlayers[index].effects;
-    //     sample.player = player;
-        
-    //   });
-
-    console.log(this.presets);
-
-    const index = this.presets.findIndex((p) => p.name === presetName);
-    localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
-    // console.log(samplePlayers);
-  }
-
-  //save all presets
-  static saveAllPresets() {
-    localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
-  }
-
   // load presets from LocalStorage
-  static loadPresets() {
+  static loadPresetsFactory() {
     this.presets = JSON.parse(localStorage.getItem("presets"));
   }
 
   static getPresetsFromLocalStorage() {
     return JSON.parse(localStorage.getItem("presets"));
+  }
+
+  static getCurrentPreset(presetName) {
+    return this.presetsToSave.find((p) => p.name === presetName);
+  }
+
+  static newSamples(samplesURLs, samplesNames, samplesDefaultNames, samplePlayers) {
+    return samplesURLs.map((url, index) => {
+      if(samplePlayers[index]) {
+        return { url: url, 
+          name: samplesDefaultNames[index],
+          player: {
+            name: samplesNames[index],
+            leftTrim: samplePlayers[index].leftTrimBar.x,
+            rightTrim: samplePlayers[index].rightTrimBar.x,
+            reversed: samplePlayers[index].reversed,
+            semitones: samplePlayers[index].semitones,
+
+            effects: {
+              volumeGain : samplePlayers[index].effects.volumeGain,
+              pan : samplePlayers[index].effects.pan,
+              tone : samplePlayers[index].effects.tone,
+              toneValue: samplePlayers[index].effects.toneValue,
+
+              attackvalue: samplePlayers[index].effects.attackvalue,
+              decayvalue: samplePlayers[index].effects.decayvalue,
+              sustainvalue: samplePlayers[index].effects.sustainvalue,
+              releasevalue: samplePlayers[index].effects.releasevalue,
+              enableAdsr: samplePlayers[index].enableAdsr
+            }
+          }
+        }
+      }
+      else {
+        return { url: url,
+          name: samplesDefaultNames[index],}
+      }
+  });
+}
+
+  //create a new preset to add into presetToSave
+  static createPreset(presetName, presetType, samplePlayers, SamplerHTMLElement) {
+    const newPreset = {};
+    newPreset.name = presetName;
+    newPreset.type = presetType;
+    newPreset.isFactoryPresets = false;
+
+    newPreset.samples = this.newSamples(SamplerHTMLElement.URLs, SamplerHTMLElement.name, SamplerHTMLElement.defaultName, samplePlayers)
+    this.presetsToSave.push(newPreset);
+  }
+
+
+  // save presets to LocalStorage
+  static savePresets(presetName, samplePlayers, sampleHTMLElements) {
+    console.log(this.presets);
+    console.log(samplePlayers);
+    if(localStorage.getItem("presets")) {
+      this.presetsToSave = JSON.parse(localStorage.getItem("presets"));
+    }
+    const presetToSave = this.presetsToSave.find((p) => p.name === presetName);
+    presetToSave.samples = this.newSamples(sampleHTMLElements.URLs, sampleHTMLElements.name, sampleHTMLElements.defaultName, samplePlayers);
+    console.log(this.presetsToSave);
+    console.log(this.presets);
+    const index = this.presets.findIndex((p) => p.name === presetName);
+    localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
+    // console.log(samplePlayers);
+  }
+
+  static loadPlayerFromCurrentPreset(samplePlayer,index, currentPreset) {
+    const currentSample = currentPreset.samples[index];
+    samplePlayer.reversed = currentSample.player.reversed;
+    samplePlayer.enableAdsr = currentSample.player.enableAdsr;
+    samplePlayer.leftTrimBar.x = currentSample.player.leftTrim;
+    samplePlayer.rightTrimBar.x = currentSample.player.rightTrim;
+    samplePlayer.semitones = currentSample.player.semitones;
+    
+    samplePlayer.effects.volumeGain = currentSample.player.effects.volumeGain;
+    samplePlayer.effects.pan = currentSample.player.effects.pan;
+    samplePlayer.effects.tone = currentSample.player.effects.tone;
+    samplePlayer.effects.toneValue = currentSample.player.effects.toneValue;
+
+    //adsr
+    samplePlayer.effects.attackvalue = currentSample.player.effects.attackvalue;
+    samplePlayer.effects.decayvalue = currentSample.player.effects.decayvalue;
+    samplePlayer.effects.sustainvalue = currentSample.player.effects.sustainvalue;
+    samplePlayer.effects.releasevalue = currentSample.player.effects.releasevalue;
+    samplePlayer.enableAdsr = currentSample.player.effects.enableAdsr;
+    
+    
+    
+    samplePlayer.reversed = currentSample.player.reversed;
+    if(samplePlayer.reversed) {
+      samplePlayer.decodedSound = samplePlayer.reverseSound(samplePlayer.decodedSound);
+    }
+
+    return samplePlayer;
+  }
+
+  //save all presets
+  static saveAllPresets() {
+    localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
   }
 
   //load current preset from LocalStorage
@@ -203,19 +230,14 @@ export default class PresetManager {
 
   //remove a preset from LocalStorage
   static removePreset(preset) {
-    console.log(preset);
     this.presetsToSave = this.presetsToSave.filter((p) => p.name !== preset);
     localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
-    console.log(this.presetsToSave);
-    // localStorage.removeItem(preset.name);
   }
 
   static resetPreset (preset) {
-    console.log(this.presets);
     const factoryPreset = this.presets.find((p) => p.name === preset);
     const index = this.presets.findIndex((p) => p.name === preset);
     this.presetsToSave[index] = factoryPreset;
-    // console.log(this.presetsToSave);
     localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
   }
 
@@ -265,3 +287,6 @@ export default class PresetManager {
     });
   }
 }
+
+
+
