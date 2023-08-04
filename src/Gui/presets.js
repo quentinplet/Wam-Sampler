@@ -152,6 +152,15 @@ export default class PresetManager {
   });
 }
 
+  static createNoteSet(presetName, presetType, samplePlayer, SamplerHTMLElement) {
+    const noteSet = {};
+    noteSet.name = presetName;
+    noteSet.type = presetType;
+    noteSet.isFactoryPresets = false;
+
+    noteSet.samples;
+  }
+
   //create a new preset to add into presetToSave
   static createPreset(presetName, presetType, samplePlayers, SamplerHTMLElement) {
     const newPreset = {};

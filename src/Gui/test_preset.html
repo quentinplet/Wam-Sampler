@@ -13,6 +13,10 @@
         <button id="loadPreset">Load Preset</button>
         <button id="clearPreset">clearPreset</button>
         <button id="displayPreset">Display Preset</button>
+        <button id="displayScale">Display Scale</button>
+        <select name="menuScale" id="selectMenuScale">
+            <option value="">--Select a scale--</option>
+        </select>
         <ul class="listPreset">
         </ul>
     </div>
@@ -20,16 +24,22 @@
     <script type="module">
         import PresetManager from './presets.js';
 
+        import NoteSet from './NoteSet.js';
+
         window.onload = init;
 
         function init() {
             setPreset();
+            displayScale();
+
+            const selectMenuScale = document.querySelector('#selectMenuScale');
+            NoteSet.buildScaleMenu(selectMenuScale);
         }
 
         const preset = new PresetManager();
         // preset.buildPresetMenu('selectMenu');
 
-        PresetManager.buildPresetMenu('selectMenu');
+        // PresetManager.buildPresetMenu('selectMenu');
 
         // const box1 = document.querySelector('.box1');
         // const preset1 = PresetManager.getPreset('preset1');
@@ -85,6 +95,37 @@
             }
         }
 
+        const displayScale = ()=> {
+            const displayScaleBtn = document.querySelector('#displayScale');
+            displayScaleBtn.addEventListener('click', () => {
+              const scales = NoteSet.getScales();
+              
+              const selectMenuScale = document.querySelector('#selectMenuScale');
+
+              const currentScale = scales.find(scale => scale.name === selectMenuScale.value);
+              if(!currentScale) return;
+
+              const semitonesAscending = currentScale.notes.ascending.map(note => note.semitones);
+              const keyAscending = currentScale.notes.ascending.map(note => note.key);
+
+
+              console.log(semitonesAscending);
+              console.log(keyAscending);
+
+              const semitonesDescending = currentScale.notes.descending.map(note => note.semitones);
+              const keyDescending = currentScale.notes.descending.map(note => note.key);
+
+
+              console.log(semitonesDescending);
+              console.log(keyDescending);
+
+            
+            
+
+            });
+
+            
+        }
 
 
     </script>
