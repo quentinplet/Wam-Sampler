@@ -158,7 +158,7 @@ export default class NoteSet {
 
     const newDescendingNotesNames = descendingNotesSemitones.map((semitone) => {
       const index = lastIndexNoteLetter + semitone;
-      return this.notesNamesSharp[index] + (semitone <= -12 ? +midiOctave - 2 : +midiOctave - 1) ;
+      return this.notesNamesSharp[index] + (semitone == 0 ? +midiOctave : +midiOctave - 1) ;
     });
 
     const newNamesScale = {

@@ -2614,10 +2614,34 @@ export default class SamplerHTMLElement extends HTMLElement {
 		
 		NoteSet.buildScaleMenu(selectMenuScale);
 
+
 		noteSetBtn.onclick = () => {
 			if(!this.player) {return};
 			
 			const switchPads = this.shadowRoot.querySelectorAll('.switchPad');
+			let stopExecution = false;
+			let presetName = prompt("Preset name :");
+
+			// Si le nom du preset est vide
+			if (presetName === "") {
+				alert("Error : preset name can't be empty");
+				stopExecution = true;
+				return;
+			}
+			// Si le nom du preset existe déjà
+			else if (PresetManager.getCurrentPreset(presetName)) {
+				alert("Error : this preset name already exists");
+				stopExecution = true;
+				return;
+			}
+			else if (presetName === null) {
+				// Si l'utilisateur annule la saisie
+				stopExecution = true;
+				return;
+			}
+
+			if(stopExecution) {return};
+			
 		
 			//change the index of the player in the samplePlayers array
 			// this.player.index = this.samplePlayers.indexOf(this.player);
@@ -2652,8 +2676,8 @@ export default class SamplerHTMLElement extends HTMLElement {
 			const descendingNotesSemitones = currentScale.notes.descending.map(note => note.semitones);
 
 			const newNamesScale = NoteSet.changeScaleNoteName(ascendingNotesSemitones, descendingNotesSemitones, noteName);
-			this.setNoteValue(playerIndex, newNamesScale.ascending[0]);
-
+			this.setNoteValue(fundamentalIndex, newNamesScale.ascending[0]);
+			
 			let indexAscending = 1;
 			for(let i = fundamentalIndex + 1; i < switchPads.length; i++) {
 				console.log(playerIndex);
@@ -2706,13 +2730,21 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 			this.setDefaultPadsKeyValue();
 
-			this.createPreset("noteSet");
 
 
+			PresetManager.createPreset(presetName, 'noteSet', this.samplePlayers, SamplerHTMLElement, switchPads);
+			// console.log(PresetManager.presets);
+			PresetManager.saveAllPresets();
+			const presetSelectMenu = this.shadowRoot.querySelector('#selectPreset');
+			PresetManager.buildPresetMenu(presetSelectMenu);
+
+			this.loadCurrentPreset(presetName);
+			this.shadowRoot.querySelector('#selectPreset').value = presetName;
 		}
 	}
 
-	createPreset = (type) => {
+
+	createPreset = (type, switchPads) => {
 		this.initKnobs();
 		// Saisie du nom du preset
 		let presetName = prompt("Preset name :");
@@ -2720,18 +2752,22 @@ export default class SamplerHTMLElement extends HTMLElement {
 		// Si le nom du preset est vide
 		if (presetName === "") {
 			alert("Error : preset name can't be empty");
+			stopExecution = true;
+			return;
 		}
 		// Si le nom du preset existe déjà
 		else if (PresetManager.getCurrentPreset(presetName)) {
 			alert("Error : this preset name already exists");
+			stopExecution = true;
 			return;
 		}
 		else if (presetName === null) {
 			// Si l'utilisateur annule la saisie
+			stopExecution = true;
 			return;
 		}
 		else {
-			PresetManager.createPreset(presetName, type, this.samplePlayers, SamplerHTMLElement);
+			PresetManager.createPreset(presetName, type, this.samplePlayers, SamplerHTMLElement, switchPads);
 			// console.log(PresetManager.presets);
 			PresetManager.saveAllPresets();
 		}
