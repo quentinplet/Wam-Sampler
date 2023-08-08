@@ -185,7 +185,7 @@ export default class PresetManager {
           const obj = {id: pad.id, cc: {cc: pad.midiController.cc, channel: pad.midiController.channel}};
           newPreset.midiLearn.push(obj);
         });
-        console.log(newPreset.midiLearn);
+        // console.log(newPreset.midiLearn);
         // console.log(nameSwitchPads);
         // console.log(midicc);
         // console.log(midiChannel);

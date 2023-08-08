@@ -2630,9 +2630,13 @@ export default class SamplerHTMLElement extends HTMLElement {
 			}
 			// Si le nom du preset existe déjà
 			else if (PresetManager.getCurrentPreset(presetName)) {
-				alert("Error : this preset name already exists");
-				stopExecution = true;
-				return;
+				// alert("Error : this preset name already exists");
+				if(!confirm("This preset name already exists. Do you want to overwrite it ?")){
+					stopExecution = true;
+					return;
+				} else {
+					PresetManager.removePreset(presetName);
+				}
 			}
 			else if (presetName === null) {
 				// Si l'utilisateur annule la saisie
@@ -2665,7 +2669,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			// this.setSwitchPad(0);
 
 			const namePlayer = SamplerHTMLElement.name[fundamentalIndex];
-			const noteName = namePlayer.match(/[A-G][#b]?[0-9]/)[0];
+			const rootNoteName = namePlayer.match(/[A-G][#b]?[0-9]/)[0];
 
 			const scales = NoteSet.getScales();
 
@@ -2675,16 +2679,15 @@ export default class SamplerHTMLElement extends HTMLElement {
 			const ascendingNotesSemitones = currentScale.notes.ascending.map(note => note.semitones);
 			const descendingNotesSemitones = currentScale.notes.descending.map(note => note.semitones);
 
-			const newNamesScale = NoteSet.changeScaleNoteName(ascendingNotesSemitones, descendingNotesSemitones, noteName);
+			const newNamesScale = NoteSet.changeScaleNoteName(ascendingNotesSemitones, descendingNotesSemitones, rootNoteName);
 			this.setNoteValue(fundamentalIndex, newNamesScale.ascending[0]);
 			
 			let indexAscending = 1;
 			for(let i = fundamentalIndex + 1; i < switchPads.length; i++) {
-				console.log(playerIndex);
 				this.samplePlayers[i] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", this.player.decodedSound, this.plugin.audioNode);
 				// SamplerHTMLElement.name[i] = SamplerHTMLElement.name[fundamentalIndex];
 				// SamplerHTMLElement.name[i] = SamplerHTMLElement.name[fundamentalIndex] + ' ' + newNamesScale[indexAscending];
-				SamplerHTMLElement.name[i] = namePlayer.replace(noteName, newNamesScale.ascending[indexAscending]);
+				SamplerHTMLElement.name[i] = namePlayer.replace(rootNoteName, newNamesScale.ascending[indexAscending]);
 				SamplerHTMLElement.defaultName[i] = SamplerHTMLElement.defaultName[fundamentalIndex];
 				SamplerHTMLElement.URLs[i]= SamplerHTMLElement.URLs[fundamentalIndex];
 
@@ -2708,7 +2711,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			for(let i = fundamentalIndex - 1; i >= 0; i--) {
 				this.samplePlayers[i] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", this.player.decodedSound, this.plugin.audioNode);
 				// SamplerHTMLElement.name[i] = SamplerHTMLElement.name[fundamentalIndex];
-				SamplerHTMLElement.name[i] = namePlayer.replace(noteName, newNamesScale.descending[indexDescending]);
+				SamplerHTMLElement.name[i] = namePlayer.replace(rootNoteName, newNamesScale.descending[indexDescending]);
 				SamplerHTMLElement.defaultName[i] = SamplerHTMLElement.defaultName[fundamentalIndex];
 				SamplerHTMLElement.URLs[i]= SamplerHTMLElement.URLs[fundamentalIndex];
 
@@ -2752,18 +2755,21 @@ export default class SamplerHTMLElement extends HTMLElement {
 		// Si le nom du preset est vide
 		if (presetName === "") {
 			alert("Error : preset name can't be empty");
-			stopExecution = true;
 			return;
 		}
 		// Si le nom du preset existe déjà
 		else if (PresetManager.getCurrentPreset(presetName)) {
-			alert("Error : this preset name already exists");
-			stopExecution = true;
-			return;
+			// alert("Error : this preset name already exists");
+			if(confirm("This preset name already exists. Do you want to overwrite it ?")){
+				PresetManager.removePreset(presetName);
+				PresetManager.createPreset(presetName, type, this.samplePlayers, SamplerHTMLElement, switchPads);
+				PresetManager.saveAllPresets();
+				return;
+			}
+			else return;
 		}
 		else if (presetName === null) {
 			// Si l'utilisateur annule la saisie
-			stopExecution = true;
 			return;
 		}
 		else {
@@ -3202,7 +3208,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		//Display the current pad name over the waveform
 		const currentSwitchPad = this.shadowRoot.querySelector("#switchpad" + padIndex);
 
-		console.log(currentSwitchPad.midiController);
+		// console.log(currentSwitchPad.midiController);
 
 		const switchPadName = currentSwitchPad.querySelector("p").innerHTML;
 		this.shadowRoot.querySelector('#labelSampleName').innerHTML = switchPadName;

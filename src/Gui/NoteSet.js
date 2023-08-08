@@ -32,7 +32,7 @@ export default class NoteSet {
       },
     },
     {
-      name: "Minor",
+      name: "Natural Minor",
       notes: {
         ascending: [
           { key: "C", semitones: 0 },
@@ -50,115 +50,218 @@ export default class NoteSet {
         descending: [
           { key: "C", semitones: 0 },
           { key: "Bb", semitones: -2 },
-          { key: "Ab", semitones: -3 },
+          { key: "Ab", semitones: -4 },
           { key: "G", semitones: -5 },
           { key: "F", semitones: -7 },
-          { key: "Eb", semitones: -8 },
+          { key: "Eb", semitones: -9 },
           { key: "D", semitones: -10 },
           { key: "C", semitones: -12 },
-          { key: "Bb", semitones: -13 },
-          { key: "Ab", semitones: -15 },
+          { key: "Bb", semitones: -14 },
+          { key: "Ab", semitones: -16 },
           { key: "G", semitones: -17 },
         ],
       },
     },
-  ];
-  // Major scale
-  static ascendingMajorScale = [
-    { key: "C", semitones: 0 },
-    { key: "D", semitones: 2 },
-    { key: "E", semitones: 4 },
-    { key: "F", semitones: 5 },
-    { key: "G", semitones: 7 },
-    { key: "A", semitones: 9 },
-    { key: "B", semitones: 11 },
-    { key: "C", semitones: 12 },
-    { key: "D", semitones: 14 },
-    { key: "E", semitones: 16 },
-    { key: "F", semitones: 17 },
-  ];
-
-  static descendingMajorScale = [
-    { key: "C", semitones: 0 },
-    { key: "B", semitones: -1 },
-    { key: "A", semitones: -3 },
-    { key: "G", semitones: -5 },
-    { key: "F", semitones: -7 },
-    { key: "E", semitones: -8 },
-    { key: "R", semitones: -10 },
-    { key: "C", semitones: -12 },
-    { key: "B", semitones: -13 },
-    { key: "A", semitones: -15 },
-    { key: "G", semitones: -17 },
-  ];
-
-  // Minor scale
-  static ascendingMinorScale = [
-    { key: "C", semitones: 0 },
-    { key: "D", semitones: 2 },
-    { key: "Eb", semitones: 3 },
-    { key: "F", semitones: 5 },
-    { key: "G", semitones: 7 },
-    { key: "Ab", semitones: 8 },
-    { key: "Bb", semitones: 10 },
-    { key: "C", semitones: 12 },
-    { key: "D", semitones: 14 },
-    { key: "Eb", semitones: 15 },
-    { key: "F", semitones: 17 },
-  ];
-
-  static descendingMinorScale = [
-    { key: "C", semitones: 0 },
-    { key: "Bb", semitones: -2 },
-    { key: "Ab", semitones: -3 },
-    { key: "G", semitones: -5 },
-    { key: "F", semitones: -7 },
-    { key: "Eb", semitones: -8 },
-    { key: "D", semitones: -10 },
-    { key: "C", semitones: -12 },
-    { key: "Bb", semitones: -13 },
-    { key: "Ab", semitones: -15 },
-    { key: "G", semitones: -17 },
-  ];
-
-  // Harmonic minor scale
-  static ascendingHarmonicMinorScale = [
-    { key: "C", semitones: 0 },
-    { key: "D", semitones: 2 },
-    { key: "Eb", semitones: 3 },
-    { key: "F", semitones: 5 },
-    { key: "G", semitones: 7 },
-    { key: "Ab", semitones: 8 },
-    { key: "B", semitones: 11 },
-    { key: "C", semitones: 12 },
-    { key: "D", semitones: 14 },
-    { key: "Eb", semitones: 15 },
-    { key: "F", semitones: 17 },
+    {
+      name: "Harmonic Minor",
+      notes: {
+        ascending: [
+          { key: "C", semitones: 0 },
+          { key: "D", semitones: 2 },
+          { key: "Eb", semitones: 3 },
+          { key: "F", semitones: 5 },
+          { key: "G", semitones: 7 },
+          { key: "Ab", semitones: 8 },
+          { key: "B", semitones: 11 },
+          { key: "C", semitones: 12 },
+          { key: "D", semitones: 14 },
+          { key: "Eb", semitones: 15 },
+          { key: "F", semitones: 17 },
+        ],
+        descending: [
+          { key: "C", semitones: 0 },
+          { key: "B", semitones: -1 },
+          { key: "Ab", semitones: -4 },
+          { key: "G", semitones: -5 },
+          { key: "F", semitones: -7 },
+          { key: "Eb", semitones: -9 },
+          { key: "D", semitones: -10 },
+          { key: "C", semitones: -12 },
+          { key: "B", semitones: -13 },
+          { key: "A", semitones: -15 },
+          { key: "G", semitones: -17 },
+        ],
+      },
+    },
+    {
+      name: "Melodic Minor",
+      notes: {
+        ascending: [
+          { key: "C", semitones: 0 },
+          { key: "D", semitones: 2 },
+          { key: "Eb", semitones: 3 },
+          { key: "F", semitones: 5 },
+          { key: "G", semitones: 7 },
+          { key: "A", semitones: 9 },
+          { key: "B", semitones: 11 },
+          { key: "C", semitones: 12 },
+          { key: "D", semitones: 14 },
+          { key: "Eb", semitones: 15 },
+          { key: "F", semitones: 17 },
+        ],
+        descending: [
+          { key: "C", semitones: 0 },
+          { key: "B", semitones: -1 },
+          { key: "A", semitones: -3 },
+          { key: "G", semitones: -5 },
+          { key: "F", semitones: -7 },
+          { key: "Eb", semitones: -9 },
+          { key: "D", semitones: -10 },
+          { key: "C", semitones: -12 },
+          { key: "B", semitones: -13 },
+          { key: "Ab", semitones: -16 },
+          { key: "G", semitones: -17 },
+        ],
+      },
+    },
+    {
+      name: "Pentatonic Major",
+      notes: {
+        ascending: [
+          { key: "C", semitones: 0 },
+          { key: "D", semitones: 2 },
+          { key: "E", semitones: 4 },
+          { key: "G", semitones: 7 },
+          { key: "A", semitones: 9 },
+          { key: "C", semitones: 12 },
+          { key: "D", semitones: 14 },
+          { key: "E", semitones: 16 },
+          { key: "G", semitones: 19 },
+          { key: "A", semitones: 21 },    
+        ],
+        descending: [
+          { key: "C", semitones: 0 },
+          { key: "A", semitones: -3 },
+          { key: "G", semitones: -5 },
+          { key: "E", semitones: -8 },
+          { key: "D", semitones: -10 },
+          { key: "C", semitones: -12 },
+          { key: "A", semitones: -15 },
+          { key: "G", semitones: -17 },
+          { key: "E", semitones: -20 },
+          { key: "D", semitones: -22 },       
+        ],
+      },
+    },
+    {
+      name: "Pentatonic Minor",
+      notes: {
+        ascending: [
+          { key: "C", semitones: 0 },
+          { key: "Eb", semitones: 3 },
+          { key: "F", semitones: 5 },
+          { key: "G", semitones: 7 },
+          { key: "Bb", semitones: 10 },
+          { key: "C", semitones: 12 },
+          { key: "Eb", semitones: 15 },
+          { key: "F", semitones: 17 },
+          { key: "G", semitones: 19 },
+          { key: "Bb", semitones: 22 },  
+        ],
+        descending: [
+          { key: "C", semitones: 0 },
+          { key: "Bb", semitones: -2 },
+          { key: "G", semitones: -5 },
+          { key: "F", semitones: -7 },
+          { key: "Eb", semitones: -9 },
+          { key: "C", semitones: -12 },
+          { key: "Bb", semitones: -14 },
+          { key: "G", semitones: -17 },
+          { key: "F", semitones: -19 },
+          { key: "Eb", semitones: -21 },
+        ],
+      },
+    },
+    {
+      name: "Blues scale",
+      notes: {
+        ascending: [
+          { key: "C", semitones: 0 },
+          { key: "Eb", semitones: 3 },
+          { key: "F", semitones: 5 },
+          { key: "Gb", semitones: 6 },
+          { key: "G", semitones: 7 },
+          { key: "Bb", semitones: 10 },
+          { key: "C", semitones: 12 },
+          { key: "Eb", semitones: 15 },
+          { key: "F", semitones: 17 },
+          { key: "Gb", semitones: 18 },
+          { key: "G", semitones: 19 },
+          { key: "Bb", semitones: 22 },
+        ],
+        descending: [
+          { key: "C", semitones: 0 },
+          { key: "Bb", semitones: -2 },
+          { key: "G", semitones: -5 },
+          { key: "Gb", semitones: -6 },
+          { key: "F", semitones: -7 },
+          { key: "Eb", semitones: -9 },
+          { key: "C", semitones: -12 },
+          { key: "Bb", semitones: -14 },
+          { key: "G", semitones: -17 },
+          { key: "Gb", semitones: -18 },
+          { key: "F", semitones: -19 },
+          { key: "Eb", semitones: -21 },
+        ],
+      },
+    },
   ];
 
   static notesNamesFlat = ['A','Bb','B','C','Db','D','Eb','E','F','Gb','G','Ab'];
   static notesNamesSharp = ['A','A#','B','C','C#','D','D#','E','F','F#','G','G#',
-                            'A','A#','B','C','C#','D','D#','E','F','F#','G','G#'];
-
+                            'A','A#','B','C','C#','D','D#','E','F','F#','G','G#',
+                            'A','A#','B','C','C#','D','D#','E','F','F#','G','G#','A'];
+  static notesSharp = [{key: 'A', ascendingSemitonesFromRoot: 9, descendingSemitonesFromRoot: -3},
+                       {key: 'A#', ascendingSemitonesFromRoot: 10, descendingSemitonesFromRoot: -2},
+                       {key: 'B', ascendingSemitonesFromRoot: 11, descendingSemitonesFromRoot: -1},
+                       {key: 'C', ascendingSemitonesFromRoot: 0, descendingSemitonesFromRoot: -12},
+                       {key: 'C#', ascendingSemitonesFromRoot: 1, descendingSemitonesFromRoot: -11},
+                       {key: 'D', ascendingSemitonesFromRoot: 2, descendingSemitonesFromRoot: -10},
+                       {key: 'D#', ascendingSemitonesFromRoot: 3, descendingSemitonesFromRoot: -9},
+                       {key: 'E', ascendingSemitonesFromRoot: 4, descendingSemitonesFromRoot: -8},
+                       {key: 'F', ascendingSemitonesFromRoot: 5, descendingSemitonesFromRoot: -7},
+                       {key: 'F#', ascendingSemitonesFromRoot: 6, descendingSemitonesFromRoot: -6},
+                       {key: 'G', ascendingSemitonesFromRoot: 7, descendingSemitonesFromRoot: -5},
+                       {key: 'G#', ascendingSemitonesFromRoot: 8, descendingSemitonesFromRoot: -4},]
   static scalesWithFlat = ['F','Bb','Eb','Ab','Db','Gb','Cb'];
   static scalesWithSharp = ['G','D','A','E','B','F#','C#'];
 
-  static changeScaleNoteName(ascendingNotesSemitones, descendingNotesSemitones, noteName) {
+  static changeScaleNoteName(ascendingNotesSemitones, descendingNotesSemitones, rootNoteName) {
 
-    const noteLetter = noteName.match(/[A-G]/)[0];
-    const midiOctave = noteName.match(/[0-9]/)[0];
+    const noteLetter = rootNoteName.match(/[A-G]/)[0];
+    const midiOctave = rootNoteName.match(/[0-9]/)[0];
 
     const indexNoteLetter = this.notesNamesSharp.indexOf(noteLetter);
     const lastIndexNoteLetter = this.notesNamesSharp.lastIndexOf(noteLetter);
+    const ascendingSemitonesFromRoot = this.notesSharp.find((note) => note.key === noteLetter).ascendingSemitonesFromRoot;
+    const descendingSemitonesFromRoot = this.notesSharp.find((note) => note.key === noteLetter).descendingSemitonesFromRoot;
     
     const newAscendingNotesNames = ascendingNotesSemitones.map((semitone) => {
       const index = indexNoteLetter + semitone;
-      return this.notesNamesSharp[index] + (semitone >= 12 ? +midiOctave + 1 : +midiOctave) ;
+      let newMidiOctave = midiOctave;
+      if(ascendingSemitonesFromRoot + semitone >= 12) {
+        newMidiOctave = +midiOctave + 1;
+      }
+      return this.notesNamesSharp[index] + newMidiOctave ;
     });
 
     const newDescendingNotesNames = descendingNotesSemitones.map((semitone) => {
       const index = lastIndexNoteLetter + semitone;
-      return this.notesNamesSharp[index] + (semitone == 0 ? +midiOctave : +midiOctave - 1) ;
+      let newMidiOctave = midiOctave;
+      if(descendingSemitonesFromRoot + semitone < -12) {
+        newMidiOctave = +midiOctave - 1;
+      }
+      return this.notesNamesSharp[index] + newMidiOctave;
     });
 
     const newNamesScale = {
