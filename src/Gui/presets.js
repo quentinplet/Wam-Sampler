@@ -402,7 +402,8 @@ export default class PresetManager {
      }
     });
     presetToSave.midiLearn = currentListMidiLearn;
-    // localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
+    localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
+    localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(currentListMidiLearn));
   }
 
   static resetAllMidiLearning() {

@@ -2134,7 +2134,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		switchPad.appendChild(buttonKeyValue);
 	}
 
-	setMidiNoteValue(index, noteValue, noteName){
+	setMidiNoteName(index, noteValue, noteName){
 		if(!noteValue) return;
 		const switchPad = this.shadowRoot.querySelector('#switchpad' + index);
 		const PadMidiNoteValue = document.createElement('div');
@@ -2179,7 +2179,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const noteValue = midiNotes.indexOf(noteName) + 21;
 		console.log(noteValue);
 
-		this.setMidiNoteValue(index, noteValue, noteName);
+		this.setMidiNoteName(index, noteValue, noteName);
 
 		switchPad.midiController.cc = noteValue;
 		switchPad.midiController.channel = 0;
@@ -2230,7 +2230,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 				if(menu.knob.querySelector('.button_midi_note')){
 					menu.knob.querySelector('.button_midi_note').remove();
 				}
-				menu.knob.midiController = {};
+				// menu.knob.midiController = {};
 
 				//remove midi learn from current preset if there is a preset saved
 				if(localStorage.presets){
@@ -2352,7 +2352,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
 			let listMidiLearn = JSON.parse(stockMidiLearn);
 			const currentMidiLearn = listMidiLearn.find(element => element.id == switchPad.id);
-			this.setMidiNoteValue(index, currentMidiLearn.cc.cc);
+			this.setMidiNoteName(index, currentMidiLearn.cc.cc);
 		}
 	}
 
@@ -2449,7 +2449,6 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const presetSelectMenu = this.shadowRoot.querySelector('#selectPreset');
 		PresetManager.buildPresetMenu(presetSelectMenu);
 		let currentPresetName = presetSelectMenu.value;
-
 		this.loadCurrentPreset(currentPresetName);
 
 		// Lorsque le preset est changé, on charge les nouveaux sons
@@ -2463,10 +2462,6 @@ export default class SamplerHTMLElement extends HTMLElement {
 			this.loadCurrentPreset(currentPresetName);
 			
 			this.initKnobs();
-			
-			//reset midi learn configuration and load midi learn from current preset
-			const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-			PresetManager.loadMidiLearnFromCurrentPreset(currentPresetName, switchPads);
 			
 		};
 	}
@@ -2488,11 +2483,14 @@ export default class SamplerHTMLElement extends HTMLElement {
 			switchPad.classList.remove('set');
 			switchPad.classList.remove('selected');
 			switchPad.classList.remove('active');
+
 		});
+
+		//reset midi learn configuration and load midi learn from current preset
+		PresetManager.loadMidiLearnFromCurrentPreset(presetName, switchPads);
 
 		//reset Waveform sample label name
 		this.shadowRoot.querySelector('#labelSampleName').innerHTML = "Waveform";
-
 
 		//load current preset sounds
 		this.loadSounds(presetName);
@@ -2524,7 +2522,6 @@ export default class SamplerHTMLElement extends HTMLElement {
 		//create preset button
 		const createPreset = this.shadowRoot.querySelector('#createPreset');
 		createPreset.onclick = () => {this.createPreset("custom preset");};
-		
 	}
 	
 	loadSounds = (presetValue) => {
@@ -2535,7 +2532,11 @@ export default class SamplerHTMLElement extends HTMLElement {
 		for (let i = 0; i < 16; i++) {
 			const progressBar = this.shadowRoot.querySelector('#progress' + i);
 			progressBar.value = 0;
+
+			const pad = this.shadowRoot.querySelector('#switchpad' + i);
+			pad.midiController = {};
 		}
+		
 		if(localStorage.presets) {
 			
 			// if local storage has presets item, load the selected preset saved in local storage
@@ -2566,6 +2567,18 @@ export default class SamplerHTMLElement extends HTMLElement {
 					else if(currentPreset) {
 						SamplerHTMLElement.name[index] = currentPreset.samples[index].name;
 					}
+					
+					const switchPad = this.shadowRoot.querySelector('#switchpad' + index);	
+					switchPad.midiController = {};
+						
+					// const currentMidiLearn = PresetManager.getMidiLearnFromCurrentPreset(presetValue, switchPad);
+					// if(currentMidiLearn === undefined) {
+					// 	switchPad.midiController = {};
+					// }
+					for(let i=this.decodedSounds.length; i<16; i++) {
+						const switchPad = this.shadowRoot.querySelector('#switchpad' + i);
+						switchPad.midiController = {};
+					}
 					this.setSwitchPad(index);
 					this.setDefaultPadKeyValue(index);
 					window.requestAnimationFrame(this.handleAnimationFrame);
@@ -2579,6 +2592,11 @@ export default class SamplerHTMLElement extends HTMLElement {
 			if(presetValue.name) {
 				presetValue = presetValue.name;
 			}
+
+			const pads = this.shadowRoot.querySelectorAll('.switchpad');
+			pads.forEach((pad) => {
+				pad.midiController = {};
+			});
 			
 			const currentPreset = PresetManager.getCurrentPreset(presetValue);
 			
@@ -2596,6 +2614,13 @@ export default class SamplerHTMLElement extends HTMLElement {
 					if (decodedSound != undefined) {
 						this.samplePlayers[index] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", decodedSound, this.plugin.audioNode);
 						//this.setPad(index);
+						const currentPad = this.shadowRoot.querySelector('#switchpad' + index);
+						currentPad.midiController = {};
+
+						for(let i=this.decodedSounds.length; i<16; i++) {
+							const switchPad = this.shadowRoot.querySelector('#switchpad' + i);
+							switchPad.midiController = {};
+						}
 						this.setSwitchPad(index);
 						this.setDefaultPadKeyValue(index);
 						window.requestAnimationFrame(this.handleAnimationFrame);
@@ -3176,7 +3201,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			//const padbutton = this.shadowRoot.querySelector('#switchpad' + padIndex);
 			// const padMidiNoteValue = currentPad.cc.cc;
 			padIndex = +currentPad.id.match(numberRegex)[0];
-			this.setMidiNoteValue(padIndex, note);
+			this.setMidiNoteName(padIndex, note);
 		}
 		
 		//if local storage is empty
