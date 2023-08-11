@@ -1,23 +1,7 @@
-
-
-
-export const presets  = [
-    {
-        name: "preset1",
-        type: "Drumkit",
-        samples: [{url:"../../audio/preset1/kick.wav", name:"kick"},
-                  {url:"../../audio/preset1/snare.wav", name:"snare"},
-                  {url:"../../audio/preset1/hihat.wav", name:"hihat"},
-                  {url:"../../audio/preset1/tom1.wav", name:"tom1"},
-                  {url:"../../audio/preset1/tom2.wav", name:"tom2"},
-                  {url:"../../audio/preset1/tom3.wav", name:"tom3"},]
-    }
-]
-
 export default class PresetManager {
   static presets = [
     {
-      name: "preset1",
+      name: "Acoustic Kit",
       type: "Drumkit",
       isFactoryPresets: true,
       samples: [
@@ -363,33 +347,47 @@ export default class PresetManager {
       midiLearn.forEach((midi) => {
         midi.cc = {};
       });
-      localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(midiLearn));
 
+      //if no preset is saved with midi configuration, reset WebAudioControlsMidiLearn
+      if(!localStorage.presets) {
+        localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(midiLearn));
+        return;
+      }
       //if the current preset is saved with midi configuration, get midi learn from this preset and add it to WebAudioControlsMidiLearn
-      if(localStorage.presets && this.getMidiLearnListFromCurrentPreset(presetName)) {
-        const midiLearn = this.getMidiLearnListFromCurrentPreset(presetName);
-        const switchPadsWithMidiLearn = midiLearn.filter(element => element.cc.cc);
+      if(localStorage.presets){
+        if(this.getMidiLearnListFromCurrentPreset(presetName)) {
+         this.loadMidiControllerFromCurrentPreset(presetName, switchPads);
+        }
+        else {
+          localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(midiLearn));
+          switchPads.forEach((switchpad) => {
+            switchpad.midiController = {};
+          });
+
+        }
+      }
+    }
+  }
+
+  static loadMidiControllerFromCurrentPreset(presetName, switchPads) {
+    if(localStorage.presets){
+      if(this.getMidiLearnListFromCurrentPreset(presetName, switchPads)) {
+        const midiLearnSaved = this.getMidiLearnListFromCurrentPreset(presetName);
+        const switchPadsWithMidiLearn = midiLearnSaved.filter(element => element.cc.cc);
         switchPads.forEach((switchpad) => {
-          //if this switchpad is include in switchPadsWithMidiLearn
           switchpad.midiController = {};
           if(switchPadsWithMidiLearn.find(element => element.id === switchpad.id)) {
-            switchpad.midiController.channel = midiLearn.find(element => element.id === switchpad.id).cc.channel;
-            switchpad.midiController.cc = midiLearn.find(element => element.id == switchpad.id).cc.cc;
+            switchpad.midiController.channel = midiLearnSaved.find(element => element.id === switchpad.id).cc.channel;
+            switchpad.midiController.cc = midiLearnSaved.find(element => element.id == switchpad.id).cc.cc;
           }
         });
-        localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(midiLearn));
-      } else {
-        switchPads.forEach((switchpad) => {
-          switchpad.midiController = {};
-        });
+        localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(midiLearnSaved));
       }
-
-
     }
   }
 
   static removeMidiLearnFromCurrentPreset(presetName, midiLearn) {
-    const currentPreset = this.loadCurrentPreset(presetName);
+    const currentPreset = this.getMidiPresetsFromLocalStorage();
     const presetToSave = this.presetsToSave.find((p) => p.name === presetName);
     if(!currentPreset.midiLearn) return;
     const currentListMidiLearn = currentPreset.midiLearn;
@@ -403,7 +401,7 @@ export default class PresetManager {
     });
     presetToSave.midiLearn = currentListMidiLearn;
     localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
-    localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(currentListMidiLearn));
+    // localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(currentListMidiLearn));
   }
 
   static resetAllMidiLearning() {

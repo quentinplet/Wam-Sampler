@@ -238,8 +238,12 @@ export default class NoteSet {
 
   static changeScaleNoteName(ascendingNotesSemitones, descendingNotesSemitones, rootNoteName) {
 
-    const noteLetter = rootNoteName.match(/[A-G]/)[0];
-    const midiOctave = rootNoteName.match(/[0-9]/)[0];
+    const noteLetter = rootNoteName.match(/[A-G][#b]?/)[0];
+    //By default the octave is 4
+    let midiOctave = 4;
+    if(rootNoteName.match(/[0-9]/)){
+      midiOctave = rootNoteName.match(/[0-9]/)[0];
+    }
 
     const indexNoteLetter = this.notesNamesSharp.indexOf(noteLetter);
     const lastIndexNoteLetter = this.notesNamesSharp.lastIndexOf(noteLetter);

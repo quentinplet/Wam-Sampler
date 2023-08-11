@@ -3,7 +3,7 @@ import EffectStack from './EffectStack.js';
 import ADSRNode from "./adsrNode.js";
 
 export default class SamplePlayer {
-    constructor(audioCtx, canvasWaveform, canvasOverlay, color, decodedSound, pluginAudioNode) {
+    constructor(audioCtx, canvasWaveform, canvasOverlay, color, decodedSound, pluginAudioNode, semitones) {
         this.ctx = audioCtx;
         this.canvasWaveform = canvasWaveform;
         this.decodedSound = decodedSound;
@@ -17,7 +17,7 @@ export default class SamplePlayer {
         this.downtime;
 
         this.pitchValue = 0;
-        this.semitones = 0;
+        this.semitones = semitones;
         this.enableAdsr = false;
         this.reversed = false;
 
@@ -36,12 +36,20 @@ export default class SamplePlayer {
 
         this.waveformDrawer = new WaveformDrawer();
         this.waveformDrawer.init(this.decodedSound, this.canvasWaveform, this.color);
+
+        //for changing the pitch in noteSet creation
+        if(this.semitones !==0) {
+            this.newDecodedSound = this.pitchedSound(this.decodedSound);
+        }else [
+            this.newDecodedSound = this.decodedSound
+        ]
     }
 
     connect(node) {
         // les effets sont à la sortie du graphe du sample player
         this.effects.connect(node);
     }
+
 
     play() {
         this.startTime = this.ctx.currentTime;
@@ -56,7 +64,7 @@ export default class SamplePlayer {
             this.bufferSource = this.ctx.createBufferSource();
             this.bufferSource.buffer = this.newBuffer;
         }
-
+        
         this.inputNode = this.bufferSource;
 
         let bufferDuration = this.bufferSource.buffer.duration;
