@@ -241,6 +241,7 @@ export default class NoteSet {
     const noteLetter = rootNoteName.match(/[A-G][#b]?/)[0];
     //By default the octave is 4
     let midiOctave = 4;
+    //If the name of the sample already contains the octave (like 'C4')
     if(rootNoteName.match(/[0-9]/)){
       midiOctave = rootNoteName.match(/[0-9]/)[0];
     }
@@ -254,7 +255,7 @@ export default class NoteSet {
       const index = indexNoteLetter + semitone;
       let newMidiOctave = midiOctave;
       if(ascendingSemitonesFromRoot + semitone >= 12) {
-        newMidiOctave = +midiOctave + 1;
+        newMidiOctave = +midiOctave + Math.floor((ascendingSemitonesFromRoot + semitone)  / 12);
       }
       return this.notesNamesSharp[index] + newMidiOctave ;
     });
