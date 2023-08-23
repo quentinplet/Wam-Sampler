@@ -178,16 +178,17 @@ let style = `
     /* background-color: yellow; */
 }
 
-#labelSampleName, #inputSampleName, #choiceExplorer, #choiceKnobs, #choiceADSR {
+#labelSampleName, #inputSampleName, #choiceExplorer, #choiceKnobs, #choiseMIDI {
 	// top: 15px;
 	// left: 400px;
 	//position: absolute;
 	font-family: 'Share Tech Mono', monospace;
 }
 
-.presetClass, .researchClass, .effectClass, .noteSetClass{
+.presetClass, .researchClass, .effectClass, .noteSetClass, .midiClassBtn{
 	font-family: 'Share Tech Mono', monospace;
 	border-radius: 8px;
+	cursor: pointer;
 }
 
 .noteSet{
@@ -217,7 +218,7 @@ let style = `
     /* background-color: lightgreen; */
     padding: 10px;
     width: 280px;
-	height: 40px;
+	height: 50px;
 	overflow: hidden;
 	display: flex;
 	flex-wrap: wrap;
@@ -227,16 +228,16 @@ let style = `
 }
 
 #selectPreset {
-	width: 180px;
-	height: 15px;
+	width: 280px;
+	height: 16px;
 	font-size: 10px;
 	padding: 0px;
 	margin: 0px;
 }
 
-#createPreset, #deletePreset, #savePreset, #newPreset {
+#createPreset, #deletePreset, #savePreset {
 	width: 90px;
-	height: 15px;
+	height: 20px;
 	font-size: 10px;
 	padding: 0px;
 	margin: 0px;
@@ -244,13 +245,13 @@ let style = `
 
 #createNoteSet {
 	width: 120px;
-	height: 16px;
+	height: 18px;
 	font-size: 10px;
 }
 
 #selectNoteSet {
 	width: 150px;
-    height: 15px;
+    height: 18px;
     font-size: 10px;
 }
 
@@ -354,6 +355,7 @@ let style = `
 	left: 0px;
 	bottom: 0px;
 	font-size: 8px;
+	color: black;
 }
 
 .button_midi_note {
@@ -361,6 +363,7 @@ let style = `
 	left: 0px;
 	top: 0px;
 	font-size: 8px;
+	color: black;
 }
 
 
@@ -412,13 +415,13 @@ let style = `
 
 #choice{
 	width: 280px;
-	height: 185px;
+	height: 180px;
 	padding: 10px;
 	padding-top: 2px;
 	
 }
 
-#choiceKnobs, #choiceExplorer, #choiceADSR {
+#choiceKnobs, #choiceExplorer, #choiceMIDI {
 	margin-bottom: 10px;
 	justify-content: center;
 	align-items: center;
@@ -624,8 +627,10 @@ option {
 	height: 5px;
 }
 
-#ADSR {
-	display: inline-block;
+#MIDI {
+	display : flex;
+	flex-direction: row;
+	justify-content: space-around;
 	width: 280px;
 	height: 160px;
 	padding-bottom: 10px;
@@ -633,12 +638,19 @@ option {
 	text-shadow: 0px 0px 1px black;
 }
 
-#ADSR h1 {
+#MIDI h1 {
 	text-align: center;
 }
 
+.midiClassBtn {
+	width: 80px;
+	height: 50px;
+	font-size: 10px;
+}
 
-#knobs, #ADSR {
+
+
+#knobs {
 	display: grid;
 	justify-content: center;
 	justify-items: center;
@@ -665,7 +677,7 @@ option {
 	text-align: center;
 	color: white;
 	text-shadow: 0px 0px 1px black;
-	font-size: 15px;
+	font-size: 13px;
 }
 
 .knobEnv {
@@ -831,7 +843,7 @@ let template = `
 		<div id="presets">
 			<select id="selectPreset" class="presetClass">
 			</select>
-			<button id="newPreset" class="presetClass">New preset</button>
+			<!-- <button id="newPreset" class="presetClass">New preset</button> -->
 			<button id="createPreset" class="presetClass">Create preset</button>
 			<button id="savePreset" class="presetClass">Save preset</button>
 			<button id="deletePreset" class="presetClass">Delete preset</button>
@@ -846,7 +858,7 @@ let template = `
 		<div id="choice">
 			<button id="choiceExplorer">Freesound</button>
 			<button id="choiceKnobs">Effects</button>
-			<button id="choiceADSR">ADSR</button>
+			<button id="choiceMIDI">Midi</button>
 
 			<div id="knobs">
 				<div class="knob" id="volumeGain">
@@ -867,7 +879,26 @@ let template = `
 				</div>
 				<div>
 					<button id="reverse" class="effectClass" >Reverse</button>
-				</div>			
+				</div>
+				<div class="knobEnv" id="adsrAttack">
+					<webaudio-knob colors="#fc0;#000;#444" id="knobAttack" height="30" width="30" sprites="100" min="0" max="1" step="0.01" value="0.2" midilearn="1" tooltip="Attack %.2f"></webaudio-knob>
+					<label for="knobAttack" class="adsrClass">Attack</label>
+				</div>
+				<div class="knobEnv" id="adsrDecay">
+					<webaudio-knob colors="#fc0;#000;#444" id="knobDecay" height="30" width="30" sprites="100" min="0" max="1" step="0.01" value="0.2" midilearn="1" tooltip="Decay %.2f"></webaudio-knob>
+					<label for="knobDecay" class="adsrClass">Decay</label>
+				</div>
+				<div class="knobEnv" id="adsrSustain">
+				<webaudio-knob colors="#fc0;#000;#444" id="knobSustain" height="30" width="30" sprites="100" min="0" max="1" step="0.01" value="0.5" midilearn="1" tooltip="Sustain %.2f"></webaudio-knob>
+				<label for="knobSustain" class="adsrClass">Sustain</label>
+				</div>
+				<div class="knobEnv" id="adsrRelease">
+				<webaudio-knob colors="#fc0;#000;#444" id="knobRelease" height="30" width="30" sprites="100" min="0" max="1" step="0.01" value="0.3" midilearn="1" tooltip="Release %.2f"></webaudio-knob>
+				<label for="knobRelease" class="adsrClass">Release</label>
+				</div>
+				<div>
+				<button id="envBtn" class="effectClass">Enable</button>
+				</div>				
 			</div>
 
 			<div id="explorer">
@@ -887,26 +918,10 @@ let template = `
 				</div>
 			</div>
 
-			<div id="ADSR">
-				<div class="knobEnv" id="adsrAttack">
-					<webaudio-knob colors="#fc0;#000;#444" id="knobAttack" height="30" width="30" sprites="100" min="0" max="1" step="0.01" value="0.2" midilearn="1" tooltip="Attack %.2f"></webaudio-knob>
-					<label for="knobAttack" class="adsrClass">Attack</label>
-				</div>
-				<div class="knobEnv" id="adsrDecay">
-					<webaudio-knob colors="#fc0;#000;#444" id="knobDecay" height="30" width="30" sprites="100" min="0" max="1" step="0.01" value="0.2" midilearn="1" tooltip="Decay %.2f"></webaudio-knob>
-					<label for="knobDecay" class="adsrClass">Decay</label>
-				</div>
-				<div class="knobEnv" id="adsrSustain">
-				<webaudio-knob colors="#fc0;#000;#444" id="knobSustain" height="30" width="30" sprites="100" min="0" max="1" step="0.01" value="0.5" midilearn="1" tooltip="Sustain %.2f"></webaudio-knob>
-				<label for="knobSustain" class="adsrClass">Sustain</label>
-				</div>
-				<div class="knobEnv" id="adsrRelease">
-				<webaudio-knob colors="#fc0;#000;#444" id="knobRelease" height="30" width="30" sprites="100" min="0" max="1" step="0.01" value="0.3" midilearn="1" tooltip="Release %.2f"></webaudio-knob>
-				<label for="knobRelease" class="adsrClass">Release</label>
-				</div>
-				<div>
-				<button id="envBtn" class="effectClass">Enable</button>
-				</div>		
+			<div id="MIDI">
+				<button id="clearMidiLearn" class="midiClassBtn">Clear all Midi Learning</button>
+				<button id="resetMidiLearn" class="midiClassBtn">Reset Midi Learning</button>
+				<button id="enableVelocity" class="midiClassBtn">Velocity off</button>
 			</div>
 		</div>
 	</div>
@@ -978,6 +993,8 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 		this.mousePos = { x: 0, y: 0 };
 
+		this.enableVelocity = false;
+
 		/*
 		console.log("getBaseURL : " + getBaseURL());
 		//this.backgroundImageURL = 	getBaseURL() + "./Gui/imgOrange.jpg";
@@ -1045,6 +1062,8 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 		//Create Note Set
 		this.createNoteSet();
+
+		this.setVelocity();
 	}
 
 	setWebAudioControlSpritesheetImages() {
@@ -1244,46 +1263,46 @@ export default class SamplerHTMLElement extends HTMLElement {
 	setChoiceButtons() {
 		const knob = this.shadowRoot.querySelector('#choiceKnobs');
 		const explorer = this.shadowRoot.querySelector('#choiceExplorer');
-		const ADSR = this.shadowRoot.querySelector('#choiceADSR');
+		const MIDI = this.shadowRoot.querySelector('#choiceMIDI');
 
 		const divKnob = this.shadowRoot.querySelector('#knobs');
 		const divExplorer = this.shadowRoot.querySelector('#explorer');
-		const divADSR = this.shadowRoot.querySelector('#ADSR');
+		const divMIDI = this.shadowRoot.querySelector('#MIDI');
 
 		explorer.classList.add('choose');
 
 		divKnob.style.display = 'none';
 		divExplorer.style.display = 'inline-block';
-		divADSR.style.display = 'none';
+		divMIDI.style.display = 'none';
 
 		knob.addEventListener('click', (e) => {
 			divKnob.style.display = 'grid';
 			divExplorer.style.display = 'none';
-			divADSR.style.display = 'none';
+			divMIDI.style.display = 'none';
 
 			knob.classList.add('choose');
 			explorer.classList.remove('choose');
-			ADSR.classList.remove('choose');
+			MIDI.classList.remove('choose');
 		});
 
 		explorer.addEventListener('click', (e) => {
 			divKnob.style.display = 'none';
 			divExplorer.style.display = 'inline-block';
-			divADSR.style.display = 'none';
+			divMIDI.style.display = 'none';
 
 			knob.classList.remove('choose');
 			explorer.classList.add('choose');
-			ADSR.classList.remove('choose');
+			MIDI.classList.remove('choose');
 		});
 
-		ADSR.addEventListener('click', (e) => {
+		MIDI.addEventListener('click', (e) => {
 			divKnob.style.display = 'none';
 			divExplorer.style.display = 'none';
-			divADSR.style.display = 'grid';
+			divMIDI.style.display = 'flex';
 
 			knob.classList.remove('choose');
 			explorer.classList.remove('choose');
-			ADSR.classList.add('choose');
+			MIDI.classList.add('choose');
 		});
 	}
 
@@ -2260,6 +2279,42 @@ export default class SamplerHTMLElement extends HTMLElement {
 			}
 		};
 		
+		this.clearAllMidiLearning();
+		this.resetAllMidiLearning();
+	}
+
+	clearAllMidiLearning() {
+		const clearBtn = this.shadowRoot.querySelector('#clearMidiLearn');
+		clearBtn.onclick = () => {
+			const switchpads = this.shadowRoot.querySelectorAll('.switchpad');
+			switchpads.forEach((switchpad) => {
+				switchpad.midiController = {};
+				if(switchpad.querySelector('.button_midi_note')){
+					switchpad.querySelector('.button_midi_note').remove();
+				}
+			});
+			localStorage.removeItem("WebAudioControlsMidiLearn");
+		};
+	}
+
+	resetAllMidiLearning(){
+		//if there is a preset saved with midi learns, reset all midi learns to the swtichpads
+		const resetBtn = this.shadowRoot.querySelector('#resetMidiLearn');
+		resetBtn.onclick = () => {
+			const currentPreset = this.shadowRoot.querySelector('#selectPreset').value;
+			const switchpads = this.shadowRoot.querySelectorAll('.switchpad')
+			if(localStorage.presets && PresetManager.getMidiLearnListFromCurrentPreset(currentPreset)){
+				PresetManager.loadMidiControllerFromCurrentPreset(currentPreset, switchpads);
+
+				switchpads.forEach((switchpad) => {
+					const index = switchpad.id.match(/\d+/g)[0];
+					if(!switchpad.querySelector('.button_midi_note')){
+						const currentMidiLearn = PresetManager.getMidiLearnFromCurrentPreset(currentPreset, switchpad.id);
+						this.setMidiNoteName(index, currentMidiLearn.cc.cc);
+					}
+				})
+			}
+		};
 	}
 
 	setSwitchPad(index) {
@@ -2372,6 +2427,10 @@ export default class SamplerHTMLElement extends HTMLElement {
 			let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
 			let listMidiLearn = JSON.parse(stockMidiLearn);
 			const currentMidiLearn = listMidiLearn.find(element => element.id == switchPad.id);
+			this.setMidiNoteName(index, currentMidiLearn.cc.cc);
+			return;
+		} else if(localStorage.presets && PresetManager.getMidiLearnListFromCurrentPreset(currentPreset)) {
+			const currentMidiLearn = PresetManager.getMidiLearnFromCurrentPreset(currentPreset, switchPad.id);
 			this.setMidiNoteName(index, currentMidiLearn.cc.cc);
 		}
 	}
@@ -2545,8 +2604,8 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const createPreset = this.shadowRoot.querySelector('#createPreset');
 		createPreset.onclick = () => {this.createPreset("custom preset");};
 
-		const newPreset = this.shadowRoot.querySelector('#newPreset');
-		newPreset.onclick = () => {this.newPreset("custom preset");};
+		// const newPreset = this.shadowRoot.querySelector('#newPreset');
+		// newPreset.onclick = () => {this.newPreset("custom preset");};
 	}
 	
 	loadSounds = (presetValue, newDecodedSounds) => {
@@ -2652,8 +2711,10 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 		noteSetBtn.onclick = () => {
 			if(!this.player) {return};
+
+			if(selectMenuScale.value === "") return;
 			
-			const switchPads = this.shadowRoot.querySelectorAll('.switchPad');
+			const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
 			let stopExecution = false;
 			let presetName = prompt("Preset name :");
 
@@ -2736,6 +2797,8 @@ export default class SamplerHTMLElement extends HTMLElement {
 			newPlayer.semitones = 0;
 			this.setKnobsEffects();
 			this.samplePlayers[fundamentalIndex] = newPlayer;
+			this.samplePlayers[fundamentalIndex] = NoteSet.setEffectsSamplePlayer(this.samplePlayers[fundamentalIndex], this.player);
+
 			
 			let indexAscending = 1;
 			for(let i = fundamentalIndex + 1; i < switchPads.length; i++) {
@@ -2746,15 +2809,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 				SamplerHTMLElement.defaultName[i] = SamplerHTMLElement.defaultName[fundamentalIndex];
 				SamplerHTMLElement.URLs[i]= SamplerHTMLElement.URLs[fundamentalIndex];
 
-				this.samplePlayers[i].leftTrimBar.x = this.player.leftTrimBar.x;
-				this.samplePlayers[i].rightTrimBar.x = this.player.rightTrimBar.x;
-
-				//duplicate the adsr
-				this.samplePlayers[i].effects.attackValue = this.player.effects.attackValue;
-				this.samplePlayers[i].effects.decayValue = this.player.effects.decayValue;
-				this.samplePlayers[i].effects.sustainValue = this.player.effects.sustainValue;
-				this.samplePlayers[i].effects.releaseValue = this.player.effects.releaseValue;
-				this.samplePlayers[i].enableAdsr = this.player.enableAdsr;
+				this.samplePlayers[i] = NoteSet.setEffectsSamplePlayer(this.samplePlayers[i], this.player);
 
 				this.samplePlayers[i].semitones = ascendingNotesSemitones[indexAscending];
 				this.setSwitchPad(i);
@@ -2770,15 +2825,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 				SamplerHTMLElement.defaultName[i] = SamplerHTMLElement.defaultName[fundamentalIndex];
 				SamplerHTMLElement.URLs[i]= SamplerHTMLElement.URLs[fundamentalIndex];
 
-				this.samplePlayers[i].leftTrimBar.x = this.player.leftTrimBar.x;
-				this.samplePlayers[i].rightTrimBar.x = this.player.rightTrimBar.x;
-
-				//duplicate the adsr
-				this.samplePlayers[i].effects.attackValue = this.player.effects.attackValue;
-				this.samplePlayers[i].effects.decayValue = this.player.effects.decayValue;
-				this.samplePlayers[i].effects.sustainValue = this.player.effects.sustainValue;
-				this.samplePlayers[i].effects.releaseValue = this.player.effects.releaseValue;
-				this.samplePlayers[i].enableAdsr = this.player.enableAdsr;
+				this.samplePlayers[i] = NoteSet.setEffectsSamplePlayer(this.samplePlayers[i], this.player);
 
 				this.samplePlayers[i].semitones = descendingNotesSemitones[indexDescending];
 				this.setSwitchPad(i);
@@ -3173,14 +3220,28 @@ export default class SamplerHTMLElement extends HTMLElement {
 		document.onkeyup = null;
 	};
 
-
+	setVelocity(){
+		const velocityBtn = this.shadowRoot.querySelector('#enableVelocity');
+		velocityBtn.onclick = () => {
+			if(!this.enableVelocity) {
+				velocityBtn.classList.add('choose');
+				velocityBtn.innerHTML = 'Velocity ON';
+				this.enableVelocity = true;
+			} else {
+				velocityBtn.classList.remove('choose');
+				velocityBtn.innerHTML = 'Velocity OFF';
+				this.enableVelocity = false;
+			}
+		};
+	}
+	
 	setupMidiListeners(audioNode) {
 		console.log("setupMIDIEvents called at " + Date.now());
 		const wamNode = audioNode._wamNode;
 		wamNode.addEventListener('wam-midi', (e) => this.processMIDIEvents([{ event: e.detail.data.bytes, time: 0 }]));
 	}
 
-	processMIDIEvents(midiEvents) {
+	processMIDIEvents(midiEvents, enableVelocity) {
 		console.log("processMIDIEvents called at " + Date.now());
 		console.log("midiEvents:", midiEvents);
 
@@ -3203,9 +3264,6 @@ export default class SamplerHTMLElement extends HTMLElement {
 				this.controlChange(controlId, ccValue)
 			}
 		});
-		//console.log(midiEvents[0])
-		//si on écoute les bindings
-		// dans la map on va par exemple changer le binding du volume en récupérant la valeur d'un autre controleur
 	}
 
 	controlChange(controlId, ccValue) {
@@ -3260,6 +3318,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			this.shadowRoot.querySelector('#knobRelease').value = parseFloat((ccValue / 127)) * 2;
 		}
 	}
+
 
 
 
@@ -3331,12 +3390,14 @@ export default class SamplerHTMLElement extends HTMLElement {
 		this.player.stop();
 		this.player.play();
 
-		
-		//set velocity to volumeGain
-		// this.player.effects.volumeGain = parseFloat(velocity / 127);
-
-
-		this.shadowRoot.querySelector('#knob1').value = parseFloat(velocity / 127);
+		//if velocity is On
+		if(this.enableVelocity) {
+			//set velocity to volumeGain
+			this.player.effects.volumeGain = parseFloat(velocity / 127);	
+			this.shadowRoot.querySelector('#knob1').value = parseFloat(velocity / 127);
+		} else {
+			this.player.effects.volumeGain = 0.5;
+		}
 
 		//remove selected class from all switchpads
 		const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
