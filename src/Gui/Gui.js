@@ -291,8 +291,10 @@ let style = `
 }
 .padDiv {
 	width: 66.25px;
-	height: 66.25px;
+	height: 75px;
 	position: relative;
+	display: flex;
+	flex-direction: column;
 }
 
 .padbutton {
@@ -382,9 +384,7 @@ let style = `
 
 .padprogress {
     width: 100%;
-	margin-top: 1px;
     height: 7px;
-	margin-bottom: 8px;
 }
 
 .set {
@@ -1351,7 +1351,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		// Appuie sur le bouton de sauvegarde lorsque l'on 'Enter' dans l'input
 		apiKeyInput.addEventListener('keyup', (e) => {
 			// Si on appuie sur 'Enter'
-			if (e.keyCode === 13) {
+			if (e.key === 'Enter') {
 				save.click();
 				save.classList.add('saved');
 				apiKeyInput.blur();
@@ -1376,6 +1376,8 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const buttonText = b.querySelector('.button_text');
 
 		label.textContent = buttonText.textContent;
+		label.style.cursor = 'pointer';
+		
 		
 		if (!b) {
 			label.ondblclick = () => {
@@ -1392,9 +1394,10 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 			}
 
-			if (b.classList.contains('selected') && (b.classList.contains('padbutton')) || (b.nodeName === 'WEBAUDIO-SWITCH')) {
+			if (b.classList.contains('selected') && ((b.classList.contains('padbutton')) || (b.nodeName === 'WEBAUDIO-SWITCH'))) {
 
 				label.ondblclick = () => {
+					if(!b.classList.contains('selected')) return;
 					label.style.display = 'none';
 					input.value = label.textContent;
 					input.style.display = 'inline-block';
@@ -1433,7 +1436,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 					this.removeAllKeyboardPress();
 					// si l'on presse la touche 'Enter'
 					input.addEventListener('keyup', (e) => {
-						if (e.keyCode === 13) {
+						if (e.key === 'Enter') {
 							input.blur();
 						}
 					});
@@ -1945,6 +1948,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		for (let i = 0; i < this.samplePlayers.length; i++) {
 			if (this.samplePlayers[i] != null) {
 				this.samplePlayers[i].stop();
+				if(this.samplePlayers[i].classList && this.samplePlayers[i].classList.contains('selected')) this.samplePlayers[i].classList.remove('selected');
 			}
 		}
 	}
@@ -1953,6 +1957,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		for (let i = 0; i < this.explorerSamplePlayers.length; i++) {
 			if (this.explorerSamplePlayers[i] != null) {
 				this.explorerSamplePlayers[i].stop();
+				this.exporterSamplePLayers[i].classList.remove('selected');
 			}
 		}
 	}
@@ -2161,7 +2166,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			const buttonKeyValue = document.createElement('div');
 			buttonKeyValue.classList.add('button_key_text');
 			buttonKeyValue.id = 'button_key_text' + i;
-			const keyArr = ['W','X','C','V','Q','S','D','F','A','Z','E','R','1','2','3','4'];
+			const keyArr = ['W/Z','X','C','V','Q/A','S','D','F','A/Q','Z/W','E','R','1','2','3','4'];
 			buttonKeyValue.innerHTML = keyArr[i];
 			switchPad.appendChild(buttonKeyValue);
 		}
@@ -2173,7 +2178,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		if(switchPad.querySelector('.button_key_text')) return;
 		buttonKeyValue.classList.add('button_key_text');
 		buttonKeyValue.id = 'button_key_text' + index;
-		const keyArr = ['W','X','C','V','Q','S','D','F','A','Z','E','R','1','2','3','4'];
+		const keyArr = ['W/Z','X','C','V','Q/A','S','D','F','A/Q','Z/W','E','R','1','2','3','4'];
 		buttonKeyValue.innerHTML = keyArr[index];
 		switchPad.appendChild(buttonKeyValue);
 	}
@@ -2597,6 +2602,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 	}
 
 	loadCurrentPreset(presetName, newDecodedSounds) {
+		
 
 		this.shadowRoot.querySelector('#selectPreset').value = presetName;
 
@@ -2607,6 +2613,9 @@ export default class SamplerHTMLElement extends HTMLElement {
 		this.player = null;
 		this.canvasContext.clearRect(0, 0, this.canvas.width, this.canvas.height);
 		this.canvasContextOverlay.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+		const label = this.shadowRoot.querySelector('#labelSampleName');
+		label.style.cursor = 'default';
 
 		//reset the content of the switchpads
 		const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
@@ -3207,140 +3216,107 @@ export default class SamplerHTMLElement extends HTMLElement {
 				e.preventDefault();
 				return;
 			}
-			switch (e.key) {
-				case '1':
-				case '&':
-					//this.shadowRoot.querySelector('#pad12').click();
+			switch (e.code) {
+				case 'Digit1':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad12'));
 					break;
-				case '2':
-				case 'é':
+				case 'Digit2':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad13'));
 					break;
-				case '3':
-				case '"':
+				case 'Digit3':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad14'));
 					break;
-				case '4':
-				case "'":
+				case 'Digit4':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad15'));
 					break;
-				case 'A':
-				case 'a':
+				case 'KeyQ':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad8'));
 					break;
-				case 'Z':
-				case 'z':
+				case 'KeyW':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad9'));
 					break;
-				case 'E':
-				case 'e':
+				case 'KeyE':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad10'));
 					break;
-				case 'R':
-				case 'r':
+				case 'KeyR':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad11'));
 					break;
-				case 'Q':
-				case 'q':
+				case 'KeyA':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad4'));
 					break;
-				case 'S':
-				case 's':
+				case 'KeyS':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad5'));
 					break;
-				case 'D':
-				case 'd':
+				case 'KeyD':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad6'));
 					break;
-				case 'F':
-				case 'f':
+				case 'KeyF':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad7'));
 					break;
-				case 'W':
-				case 'w':
+				case 'KeyZ':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad0'));
 					break;
-				case 'X':
-				case 'x':
+				case 'KeyX':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad1'));
 					break;
-				case 'C':
-				case 'c':
+				case 'KeyC':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad2'));
 					break;
-				case 'V':
-				case 'v':
+				case 'KeyV':
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad3'));
 					break;
 			}
 		};
 
 		document.onkeyup = (e) => {
-			switch (e.key) {
-				case '1':
-				case '&':
+			switch (e.code) {
+				case 'Digit1':
 					//this.shadowRoot.querySelector('#pad12').classList.remove('active');
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad12'));
 					break;
-				case '2':
-				case 'é':
+				case 'Digit2':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad13'));
 					break;
-				case '3':
-				case '"':
+				case 'Digit3':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad14'));
 					break;
-				case '4':
-				case "'":
+				case 'Digit4':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad15'));
 					break;
-				case 'A':
-				case 'a':
+				case 'KeyQ':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad8'));
 					break;
-				case 'Z':
-				case 'z':
+				case 'KeyW':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad9'));
 					break;
-				case 'E':
-				case 'e':
+				case 'KeyE':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad10'));
 					break;
-				case 'R':
-				case 'r':
+				case 'KeyR':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad11'));
 					break;
-				case 'Q':
-				case 'q':
+				case 'KeyA':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad4'));
 					break;
-				case 'S':
-				case 's':
+				case 'KeyS':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad5'));
 					break;
-				case 'D':
-				case 'd':
+				case 'KeyD':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad6'));
 					break;
-				case 'F':
-				case 'f':
+				case 'KeyF':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad7'));
 					break;
-				case 'W':
-				case 'w':
+				case 'KeyZ':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad0'));
 					break;
-				case 'X':
-				case 'x':
+				case 'KeyX':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad1'));
 					break;
-				case 'C':
-				case 'c':
+				case 'KeyC':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad2'));
 					break;
-				case 'V':
-				case 'v':
+				case 'KeyV':
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad3'));
 					break;
 			}
