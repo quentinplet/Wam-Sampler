@@ -236,7 +236,7 @@ export default class PresetManager {
     this.presets = this.presets.filter((p) => p.name !== preset.name);
   }
 
-  static getPreset(name) {
+  static getFactoryPreset(name) {
     return this.presets.find((p) => p.name === name);
   }
 
@@ -279,7 +279,14 @@ export default class PresetManager {
   }
 
   static getCurrentPreset(presetName) {
-    return this.presetsToSave.find((p) => p.name === presetName);
+    if(localStorage.presets) {
+      const presets = JSON.parse(localStorage.getItem("presets"));
+      const currentPreset = presets.find(preset => preset.name === presetName);
+      console.log(currentPreset);
+      return currentPreset;
+    }else {
+      return this.presetsToSave.find((p) =>  p.name === presetName);
+    }
   }
 
   static newSamples(samplesURLs, samplesNames, samplesDefaultNames, samplePlayers) {
@@ -593,10 +600,6 @@ export default class PresetManager {
       localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(midiLearn));
     }
   }
-
-  // static getMidiLearnPreset(switchpad) {
-  //   const midiPresets = 
-  // }
 }
 
 

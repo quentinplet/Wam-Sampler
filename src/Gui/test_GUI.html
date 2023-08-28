@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML Prompt Simulation</title>
+</head>
+<body>
+  <script>
+    class HTMLPrompt extends HTMLElement {
+      constructor() {
+        super();
+
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.innerHTML = `
+          <style>
+            #prompt-container {
+              border: 1px solid #ccc;
+              padding: 10px;
+              width: 300px;
+            }
+
+            input {
+              width: 100%;
+              padding: 5px;
+              margin-top: 5px;
+            }
+          </style>
+          <div id="prompt-container">
+            <slot></slot>
+            <input id="input-field-prompt" type="text" placeholder="Enter your response">
+            <button id="submit-button">Submit</button>
+          </div>
+        `;
+
+        this.inputField = this.shadowRoot.getElementById('input-field-prompt');
+        this.submitButton = this.shadowRoot.getElementById('submit-button');
+
+        this.promiseResolve = null;
+
+        this.submitButton.addEventListener('click', (evt) => this.onSubmit(evt));
+      }
+
+      async showPrompt(message) {
+         this.shadowRoot.getElementById('input-field-prompt').placeholder=message;
+        document.body.appendChild(this);
+        return new Promise((resolve) => {
+          this.promiseResolve = resolve;
+        });
+      }
+
+      onSubmit(evt) {
+        evt.preventDefault();
+        evt.stopPropagation(); 
+        this.response = this.inputField.value;
+        this.closePrompt();
+        if (this.promiseResolve) {
+          this.promiseResolve(this.response);
+        }
+      }
+
+      closePrompt() {
+        document.body.removeChild(this);
+      }
+    }
+
+    customElements.define('html-prompt', HTMLPrompt);
+  </script>
+
+  <script>
+    let promptElement;
+    
+    async function promptUser() {
+      promptElement = document.createElement('html-prompt');
+      document.body.appendChild(promptElement);
+      const response = await promptElement.showPrompt("Enter preset name!");
+      //alert(`You entered: ${response}`);
+      return response;
+    }
+
+    async function createPreset() {
+      const r = await promptUser();
+      alert(r)
+    }
+
+      createPreset();
+  </script>
+</body>
+</html>
