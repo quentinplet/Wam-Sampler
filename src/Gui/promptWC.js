@@ -50,6 +50,7 @@ class HTMLPrompt extends HTMLElement {
     this.submitButton.addEventListener('click', (evt) => this.onSubmit(evt));
     
     this.closeButton.addEventListener('click', (evt) => this.onClose(evt));
+    this.closeEvent = new Event('promptClosed');
   }
 
   async showPrompt(message) {
@@ -80,6 +81,7 @@ class HTMLPrompt extends HTMLElement {
    
     if(this.isConnected){
       this.parentNode.removeChild(this);
+      this.dispatchEvent(this.closeEvent);
     }
   }
 }

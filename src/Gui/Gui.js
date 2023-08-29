@@ -156,11 +156,12 @@ let style = `
 }
 
 #labelSampleName {
-    width: 280px;
+	display: inline-block;
+    width: 200px;
     height: 20px;
 	padding: 2px;
     margin: 0px;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
     text-align: center;
 	color: white;
@@ -186,6 +187,37 @@ let style = `
 	font-family: 'Share Tech Mono', monospace;
 }
 
+button {
+	cursor: pointer;
+	transform: scale(1);
+	transform-origin: center;
+}
+
+button:hover {
+	background-color: #E9E9F0;
+	transform: scale(1.02);
+}
+
+#enableVelocity:hover {
+	background-color: orange;
+}
+
+button:active {
+	transform: scale(0.97);
+}
+
+.btn-disabled{
+	pointer-events: none;
+	opacity: 0.5;
+	transform: scale(1);
+	background-color: #ccc;
+}
+
+select:hover {
+	background-color: #E9E9F0;
+	transform: scale(1.005);
+}
+
 .presetClass, .researchClass, .effectClass, .noteSetClass, .midiClassBtn{
 	font-family: 'Share Tech Mono', monospace;
 	border-radius: 8px;
@@ -199,6 +231,7 @@ let style = `
 
 .noteSet{
 	display: flex;
+	gap: 2px;
 	margin-top: 3px;
 }
 
@@ -223,6 +256,7 @@ let style = `
 #presets {
     /* background-color: lightgreen; */
     padding: 10px;
+	padding-top : 6px;
     width: 280px;
 	height: 50px;
 	overflow: hidden;
@@ -239,6 +273,7 @@ let style = `
 	font-size: 10px;
 	padding: 0px;
 	margin: 0px;
+	margin-bottom: 1px;
 	border: 1px solid black;
 }
 
@@ -440,6 +475,7 @@ let style = `
 	border-radius: 10px;
 }
 
+
 #explorer {
 	font-size: 0px;
 	display: inline-block;
@@ -609,6 +645,12 @@ button, select, input {
 	}
 }
 
+
+.choiceBtn:hover {
+	background-color: orange;
+}
+
+
 option {
 	text-align: center;
 	overflow: hidden;
@@ -661,6 +703,10 @@ option {
 
 .midiClassBtn:active {
 	border: none;
+	background-color: orange;
+}
+
+.midiClassBtn:hover{
 	background-color: orange;
 }
 
@@ -749,6 +795,21 @@ option {
 .knobDisabled{
 	pointer-events: none;
 	opacity: 0.5;
+}
+
+#formHelp {
+	position: absolute;
+	padding: 2px;
+	right: 3px;
+}
+#formHelp button {
+	font-size: 10px;
+	cursor: pointer;
+	border-radius : 5px;
+	font-family: 'Share Tech Mono', monospace;
+}
+#formHelp button:hover {
+	background-color: #DDDCE3;
 }
 `;
 
@@ -845,6 +906,9 @@ let template = `
 
 		<div id="waveform">
 			<div id="soundNameContainer">
+				<form id="formHelp" action="https://github.com/quentinplet/Sampler-WAM.git" target="_blank">
+					<button type="submit">About</button>
+		  		</form>
 				<p id="soundName">
 				<label id="labelSampleName">Waveform</label>
 				<input type="text" id="inputSampleName" value="Waveform">
@@ -872,9 +936,9 @@ let template = `
 		</div>
 
 		<div id="choice">
-			<button id="choiceExplorer">Freesound</button>
-			<button id="choiceKnobs">Effects</button>
-			<button id="choiceMIDI">Midi</button>
+			<button class="choiceBtn" id="choiceExplorer">Freesound</button>
+			<button class="choiceBtn" id="choiceKnobs">Effects</button>
+			<button class="choiceBtn" id="choiceMIDI">Midi</button>
 
 			<div id="knobs">
 				<div class="knob" id="volumeGain">
@@ -935,9 +999,9 @@ let template = `
 			</div>
 
 			<div id="MIDI">
-				<button id="defaultMidiLearn" class="midiClassBtn">Default Midi Learning</button>
-				<button id="clearMidiLearn" class="midiClassBtn">Clear all Midi Learning</button>
-				<button id="resetMidiLearn" class="midiClassBtn">Reset Midi Learning</button>
+				<button id="defaultMidiLearn" class="midiClassBtn">Default Midi Mapping</button>
+				<button id="clearMidiLearn" class="midiClassBtn">Clear all Midi Mapping</button>
+				<button id="resetMidiLearn" class="midiClassBtn">Reset Midi Mapping</button>
 				<button id="enableVelocity" class="midiClassBtn">Velocity off</button>
 			</div>
 		</div>
@@ -1369,13 +1433,19 @@ export default class SamplerHTMLElement extends HTMLElement {
 		});
 	}
 
-	setLabel(index, b) {
+	setLabel(index, b, defaultName) {
 		const label = this.shadowRoot.querySelector('#labelSampleName');
 		const input = this.shadowRoot.querySelector('#inputSampleName');
 		const preset = this.shadowRoot.querySelector('#selectPreset').value;
 		const buttonText = b.querySelector('.button_text');
 
-		label.textContent = buttonText.textContent;
+		if(buttonText){
+			label.textContent = buttonText.textContent;
+		}
+		else {
+			label.textContent = b.textContent;
+		}
+
 		label.style.cursor = 'pointer';
 		
 		
@@ -1386,15 +1456,15 @@ export default class SamplerHTMLElement extends HTMLElement {
 		}
 		else {
 
-			if (b.classList.contains('resultButton')) {
-				//disable the double click on the result button
-				label.ondblclick = () => {
-					return;
-				}
+			// if (b.classList.contains('resultButton')) {
+			// 	//disable the double click on the result button
+			// 	label.ondblclick = () => {
+			// 		return;
+			// 	}
 
-			}
+			// }
 
-			if (b.classList.contains('selected') && ((b.classList.contains('padbutton')) || (b.nodeName === 'WEBAUDIO-SWITCH'))) {
+			if (b.classList.contains('selected') && ((b.classList.contains('resultButton')) || (b.nodeName === 'WEBAUDIO-SWITCH'))) {
 
 				label.ondblclick = () => {
 					if(!b.classList.contains('selected')) return;
@@ -1407,12 +1477,17 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 				input.onblur = () => {
 					label.textContent = input.value;
-					if (label.textContent == "") {
-						label.textContent = SamplerHTMLElement.defaultName[index];
+					if(b.classList.contains('resultButton')){
+						if(label.textContent == "") label.textContent = defaultName;
+						b.textContent = label.textContent;
+					} else if(b.nodeName === 'WEBAUDIO-SWITCH'){
+						if (label.textContent == "") {
+							label.textContent = SamplerHTMLElement.defaultName[index];
+						}
+						SamplerHTMLElement.name[index] = label.textContent;
+						const currentButtonText = b.querySelector('.button_text');
+						currentButtonText.innerHTML = SamplerHTMLElement.name[index];
 					}
-					SamplerHTMLElement.name[index] = label.textContent;
-					const currentButtonText = b.querySelector('.button_text');
-					currentButtonText.innerHTML = SamplerHTMLElement.name[index];
 					//b.innerHTML = label.textContent;
 
 					// Ajoute un petit bouton pour supprimer le sample en haut à droite
@@ -1957,7 +2032,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		for (let i = 0; i < this.explorerSamplePlayers.length; i++) {
 			if (this.explorerSamplePlayers[i] != null) {
 				this.explorerSamplePlayers[i].stop();
-				this.exporterSamplePLayers[i].classList.remove('selected');
+				// this.exporterSamplePLayers[i].classList.remove('selected');
 			}
 		}
 	}
@@ -1974,6 +2049,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const b = document.createElement('button');
 		b.classList.add('resultButton');
 		b.id = 'result' + index;
+		let defaultName = name;
 		b.innerHTML = name;
 		b.addEventListener('click', (e) => {
 			// Si le son est chargé
@@ -1997,6 +2073,12 @@ export default class SamplerHTMLElement extends HTMLElement {
 					button.classList.remove('selected');
 				});
 
+				//Remove selected class from all switchpad
+				const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
+				switchPads.forEach((switchPad) => {
+					switchPad.classList.remove('selected');
+				});
+
 				// On enleve la class .selected de tous les button de l'explorer
 				const buttonsExplorer = this.shadowRoot.querySelectorAll('.resultButton');
 				buttonsExplorer.forEach((button) => {
@@ -2006,7 +2088,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 				// On ajoute la class .selected au bouton cliqué
 				b.classList.add('selected');
 
-				//this.setLabel(index, b);
+				this.setLabel(index, b, defaultName);
 			}
 		});
 
@@ -2206,10 +2288,10 @@ export default class SamplerHTMLElement extends HTMLElement {
 			noteName = midiNotes[newNoteValue];
 		}
 		PadMidiNoteValue.innerHTML = noteName;
-		if(switchPad.querySelector('.button_midi_note')){
-			switchPad.replaceChild(PadMidiNoteValue, switchPad.querySelector('.button_midi_note'));
-		}else{
+		if(!switchPad.querySelector('.button_midi_note')){
 			switchPad.appendChild(PadMidiNoteValue);
+		}else{
+			switchPad.replaceChild(PadMidiNoteValue, switchPad.querySelector('.button_midi_note'));
 		}
 	}
 
@@ -2232,6 +2314,17 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 		switchPad.midiController.cc = noteValue;
 		switchPad.midiController.channel = 0;
+	}
+
+	updateMidiMapping() {
+		const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
+		switchPads.forEach((switchPad)=>{
+			if(switchPad.midiController) {
+				if(switchPad.midiController.cc) {
+					this.setMidiNoteName(switchPad.id, switchPad.midiController.cc);
+				}
+			}
+		})
 	}
 
 	updateMidiNoteValue(noteValue){
@@ -2303,7 +2396,11 @@ export default class SamplerHTMLElement extends HTMLElement {
 		
 		this.clearAllMidiLearning();
 		this.resetAllMidiLearning();
-		this.defaultMidiLearning();
+		const defaultMidiLearnBtn = this.shadowRoot.querySelector('#defaultMidiLearn');
+		defaultMidiLearnBtn.onclick = () => {
+			let manualClick = true;
+			this.defaultMidiMapping(manualClick);
+		}
 	}
 
 	clearAllMidiLearning() {
@@ -2331,46 +2428,60 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 				switchpads.forEach((switchpad) => {
 					const index = switchpad.id.match(/\d+/g)[0];
-					if(!switchpad.querySelector('.button_midi_note')){
+					// if(!switchpad.querySelector('.button_midi_note')){
 						const currentMidiLearn = PresetManager.getMidiLearnFromCurrentPreset(currentPreset, switchpad.id);
+						if(currentMidiLearn.cc.cc === undefined) {
+							if(switchpad.querySelector('.button_midi_note')){
+								switchpad.querySelector('.button_midi_note').remove();
+							}
+						}
 						this.setMidiNoteName(index, currentMidiLearn.cc.cc);
 					}
-				})
+				)
 			}
 		};
 	}
 
-	defaultMidiLearning() {
-		const defaultMidiLearnBtn = this.shadowRoot.querySelector('#defaultMidiLearn');
-		defaultMidiLearnBtn.onclick = () => {
-			// const defaultRootMidiNote = this.shadowRoot.querySelector('#defaultRootMidiNote');
-			const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-			const defaultRootMidiNote = 60;
-			let midiLearnList = [];
-			if(localStorage.WebAudioControlsMidiLearn){
-				midiLearnList = JSON.parse(localStorage.WebAudioControlsMidiLearn);
-				switchPads.forEach((switchPad) => {
-					switchPad.midiController = {};
-					const index = switchPad.id.match(/\d+/g)[0];
-					this.setMidiNoteName(index, defaultRootMidiNote + parseInt(index));
-					const currentMidiLearn = midiLearnList.find(element => element.id == switchPad.id);
-					currentMidiLearn.cc.channel = 0;
-					currentMidiLearn.cc.cc = defaultRootMidiNote + parseInt(index);
-					switchPad.midiController.cc = currentMidiLearn.cc;
+	defaultMidiMapping(manualClick) {
+		// const defaultRootMidiNote = this.shadowRoot.querySelector('#defaultRootMidiNote');
+		const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
+		const defaultRootMidiNote = 60;
+		let midiLearnList = [];
+		const preset = this.shadowRoot.querySelector('#selectPreset').value;
+		if(localStorage.presets && PresetManager.getMidiLearnListFromCurrentPreset(preset)){
+			if(!manualClick) {
+				const midiList = PresetManager.getMidiLearnListFromCurrentPreset(preset);
+				midiList.forEach((midi) => {
+					if(midi.id.includes('switchpad')) {
+						this.setMidiNoteName(midi.id.match(/\d+/g)[0], midi.cc.cc);
+					}
 				});
-			} else {
-				switchPads.forEach((switchPad) => {
-					switchPad.midiController = {};
-					const index = switchPad.id.match(/\d+/g)[0];
-					this.setMidiNoteName(index, defaultRootMidiNote + parseInt(index));
-					midiLearnList.push({id: switchPad.id, cc: {cc: defaultRootMidiNote + parseInt(index), channel: 0}});
-					switchPad.midiController.cc = defaultRootMidiNote + parseInt(index);
-					switchPad.midiController.channel = 0;
-				});
-			}
-			
-			localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(midiLearnList));
+				return;
 			};
+		};
+		if(localStorage.WebAudioControlsMidiLearn){
+			midiLearnList = JSON.parse(localStorage.WebAudioControlsMidiLearn);
+			switchPads.forEach((switchPad) => {
+				switchPad.midiController = {};
+				const index = switchPad.id.match(/\d+/g)[0];
+				this.setMidiNoteName(index, defaultRootMidiNote + parseInt(index));
+				const currentMidiLearn = midiLearnList.find(element => element.id == switchPad.id);
+				currentMidiLearn.cc.channel = 0;
+				currentMidiLearn.cc.cc = defaultRootMidiNote + parseInt(index);
+				switchPad.midiController.cc = currentMidiLearn.cc;
+			});
+		} else {
+			switchPads.forEach((switchPad) => {
+				switchPad.midiController = {};
+				const index = switchPad.id.match(/\d+/g)[0];
+				this.setMidiNoteName(index, defaultRootMidiNote + parseInt(index));
+				midiLearnList.push({id: switchPad.id, cc: {cc: defaultRootMidiNote + parseInt(index), channel: 0}});
+				switchPad.midiController.cc = defaultRootMidiNote + parseInt(index);
+				switchPad.midiController.channel = 0;
+			});
+		}
+		
+		localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(midiLearnList));
 	}
 
 	setSwitchPad(index) {
@@ -2584,7 +2695,14 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const presetSelectMenu = this.shadowRoot.querySelector('#selectPreset');
 		PresetManager.buildPresetMenu(presetSelectMenu);
 		let currentPresetName = presetSelectMenu.value;
-		this.loadCurrentPreset(currentPresetName);
+		let promptAvailable = false;
+
+		this.loadCurrentPreset(currentPresetName, promptAvailable);
+		//Create Note Set
+		this.createNoteSet(promptAvailable);
+		const noteSetBtn = this.shadowRoot.querySelector('#createNoteSet');
+		noteSetBtn.disabled = true;
+		// noteSetBtn.classList.add('btn-disabled');
 
 		// Lorsque le preset est changé, on charge les nouveaux sons
 		presetSelectMenu.onchange = () => {
@@ -2601,7 +2719,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		};
 	}
 
-	loadCurrentPreset(presetName, newDecodedSounds) {
+	loadCurrentPreset(presetName, newDecodedSounds, promptAvailable) {
 		
 
 		this.shadowRoot.querySelector('#selectPreset').value = presetName;
@@ -2626,10 +2744,13 @@ export default class SamplerHTMLElement extends HTMLElement {
 			switchPad.classList.remove('active');
 		});
 
+
 		//reset midi learn configuration and load midi learn from current preset
-		PresetManager.loadMidiLearnFromCurrentPreset(presetName, switchPads);
+		// PresetManager.loadMidiLearnFromCurrentPreset(presetName, switchPads);
 
-
+		//load auto Midi Mapping by default
+		this.defaultMidiMapping();
+		// this.updateMidiMapping();
 
 		//reset Waveform sample label name
 		this.shadowRoot.querySelector('#labelSampleName').innerHTML = "Waveform";
@@ -2661,17 +2782,10 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const savePreset = this.shadowRoot.querySelector('#savePreset');
 		savePreset.onclick = () => {this.savePreset();};
 
-
-		let promptAvailable = false;
-
 		//create preset button
 		const createPreset = this.shadowRoot.querySelector('#createPreset');
 		createPreset.onclick = () => {this.createPreset("custom preset",switchPads,promptAvailable);};
 
-		//Create Note Set
-		this.createNoteSet(promptAvailable);
-		const btnNoteSet = this.shadowRoot.querySelector('#createNoteSet');
-		btnNoteSet.disabled = true;	
 	}
 
 	loadCurrentState(currentState) {
@@ -2833,6 +2947,9 @@ export default class SamplerHTMLElement extends HTMLElement {
 			});
 			let promptElement = document.createElement('html-prompt');
 			this.shadowRoot.querySelector("#results").append(promptElement);
+			promptElement.addEventListener('promptClosed', (e) => {
+				this.setKeyboardPress();
+			});
 			const response = await promptElement.showPrompt("Enter preset name!");
 
 			resultExplorerPads.forEach((resultExplorerPad) => {
@@ -2864,6 +2981,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			} else {
 				if(this.player) {
 					noteSetBtn.disabled = false;
+					// noteSetBtn.classList.remove('btn-disabled');
 				}
 			}
 		};
@@ -2872,6 +2990,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			switchPad.onclick = () => {
 				if(selectMenuScale.value !== "") {
 					noteSetBtn.disabled = false;
+					// noteSetBtn.classList.remove('btn-disabled');
 				}
 			};
 		});
@@ -3124,9 +3243,9 @@ export default class SamplerHTMLElement extends HTMLElement {
 		if(PresetManager.isFactoryPreset(preset)) {
 			PresetManager.resetPreset(preset);
 			PresetManager.resetAllMidiLearning();
-
 			this.loadCurrentPreset(preset);
 			PresetManager.loadMidiLearnFromCurrentPreset(presetSelectMenu.value, switchPads);
+			this.defaultMidiMapping();
 		} else {
 			PresetManager.removePreset(preset);
 			PresetManager.resetAllMidiLearning();
@@ -3210,7 +3329,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 	}
 
 	setKeyboardPress() {
-		document.onkeydown = (e) => {
+		document.addEventListener('keydown',(e) => {
 			//evite la répétition de l'évènement -> sample qui joue en boucle
 			if (e.repeat) {
 				e.preventDefault();
@@ -3266,9 +3385,9 @@ export default class SamplerHTMLElement extends HTMLElement {
 					this.noteOnKey(this.shadowRoot.querySelector('#switchpad3'));
 					break;
 			}
-		};
+		});
 
-		document.onkeyup = (e) => {
+		document.addEventListener('keyup',(e) => {
 			switch (e.code) {
 				case 'Digit1':
 					//this.shadowRoot.querySelector('#pad12').classList.remove('active');
@@ -3320,7 +3439,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad3'));
 					break;
 			}
-		};
+		});
 	}
 
 	removeKeyboardPress = () => {
