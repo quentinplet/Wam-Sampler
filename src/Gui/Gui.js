@@ -707,7 +707,7 @@ option {
 	background-color: orange;
 }
 
-.midiClassBtn:hover{
+.midiClassBtn:hover, #reverse:hover, #envBtn:hover{
 	background-color: orange;
 }
 
@@ -3435,11 +3435,11 @@ export default class SamplerHTMLElement extends HTMLElement {
 		enableKeysBtn.addEventListener('click', (e) => {
 			if(localEnableKeyboard) {
 				localEnableKeyboard= false;
-				enableKeysBtn.textContent = "Keyboard On"
+				enableKeysBtn.textContent = "Keyboard OFF"
 				enableKeysBtn.classList.remove('choose');
 			} else {
 				localEnableKeyboard = true;
-				enableKeysBtn.textContent = "Keyboard On"
+				enableKeysBtn.textContent = "Keyboard ON"
 				enableKeysBtn.classList.add('choose');
 			}
 		});
