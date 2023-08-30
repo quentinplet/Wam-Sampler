@@ -348,23 +348,10 @@ export default class PresetManager {
       newPreset.midiLearn = this.getMidiPresetsFromLocalStorage();
     } else {
       newPreset.midiLearn = [];
-        // let nameSwitchPads = [];
-        // let midicc = [];
-        // let midiChannel = [];
-        // switchPads.forEach((pad) => {
-        //   nameSwitchPads.push(pad.id);
-        //   midicc.push(pad.midiController.cc);
-        //   midiChannel.push(pad.midiController.channel);
-        // });
         switchPads.forEach((pad) => {
           const obj = {id: pad.id, cc: {cc: pad.midiController.cc, channel: pad.midiController.channel}};
           newPreset.midiLearn.push(obj);
         });
-        // console.log(newPreset.midiLearn);
-        // console.log(nameSwitchPads);
-        // console.log(midicc);
-        // console.log(midiChannel);
-        
       }
     this.presetsToSave.push(newPreset);
     if(!localStorage.WebAudioControlsMidiLearn) {
@@ -385,9 +372,7 @@ export default class PresetManager {
     presetToSave.samples = this.newSamples(sampleHTMLElements.URLs, sampleHTMLElements.name, sampleHTMLElements.defaultName, samplePlayers);
 
     presetToSave.midiLearn = this.getMidiPresetsFromLocalStorage();
-    const index = this.presets.findIndex((p) => p.name === presetName);
     localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
-    // console.log(samplePlayers);
   }
 
   static loadPlayerFromCurrentPreset(samplePlayer,index, currentPreset) {
@@ -592,7 +577,6 @@ export default class PresetManager {
     });
     presetToSave.midiLearn = currentListMidiLearn;
     localStorage.setItem("presets", JSON.stringify(this.presetsToSave));
-    // localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(currentListMidiLearn));
   }
 
   static clearMidiMappingFromCurrentPreset(presetName) {
@@ -624,10 +608,8 @@ export default class PresetManager {
     const preset = this.getCurrentPreset(presetName);
     if(!preset.midiLearn) {
       switchPads.forEach((switchPad) => {
-        // switchPad.midiController = {};
         const index = switchPad.id.match(/\d+/g)[0];
         midiLearnList.push({id: switchPad.id, cc: {cc: defaultRootMidiNote + parseInt(index), channel: 0}});
-        // switchPad.midiController = defaultRootMidiNote + parseInt(index);
       });
       preset.midiLearn = midiLearnList;
     }

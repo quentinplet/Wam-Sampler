@@ -554,17 +554,6 @@ export default class NoteSet {
     };
 
     return newNamesScale;
-
-    // const newScale = scale.notes.ascending.map((note, index) => {
-    //   const newNote = {};
-    //   newNote.key = newNameScale[index];
-    //   newNote.semitones = note.semitones;
-    //   return newNote;
-    // });
-
-    // console.log(newScale);
-    
-
   }
 
   static setEffectsSamplePlayer(currentSamplePlayer, rootPlayer) {

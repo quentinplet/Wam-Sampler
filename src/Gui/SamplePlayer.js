@@ -68,30 +68,13 @@ export default class SamplePlayer {
         this.inputNode = this.bufferSource;
 
         let bufferDuration = this.bufferSource.buffer.duration;
-        // let newBufferDuration = bufferDuration / this.bufferSource.playbackRate.value;
-        // bufferDuration = newBufferDuration;
 
-        // console.log("buffer length : " + this.bufferSource.buffer.length);
-        // console.log("buffer playbackRate : " + this.bufferSource.playbackRate.value);
-        // console.log("buffer Duration : " + this.bufferSource.buffer.duration);
-        //console.log("new buffer Duration : " + newBufferDuration);
-
-        //ADSR envelope
-
-        //if env is enabled 
-        // this.env = ADSRNode(this.ctx, {
-        //     attack : 0.2,
-        //     decay : 0.2,
-        //     sustain : 1,
-        //     release : 0.5
-        // });
         this.gainEnvNode = this.ctx.createGain();
         this.effects.opts.attack = this.effects.attackValue;
         this.effects.opts.decay = this.effects.decayValue;
         this.effects.opts.sustain = this.effects.sustainValue;
         this.effects.opts.release = this.effects.releaseValue;
         if (this.enableAdsr) {
-            //setParamsEnvValue(this.effects.opts);
             let sustime = bufferDuration - (this.effects.opts.attack + this.effects.opts.decay + this.effects.opts.release);
             sustime = bufferDuration; //temps temporaire de sustain
             this.downtime = this.effects.opts.attack + this.effects.opts.decay + sustime;
@@ -100,8 +83,6 @@ export default class SamplePlayer {
             this.env.start(this.ctx.currentTime);
             this.env.connect(this.gainEnvNode.gain);
             this.env.trigger(this.ctx.currentTime);
-            //this.env.release(this.ctx.currentTime + parseFloat(sustime));
-            //this.releaseEnv();
         }
 
         if (!this.enableAdsr) {
@@ -112,13 +93,10 @@ export default class SamplePlayer {
         this.bufferSource.connect(this.gainEnvNode);
         this.gainEnvNode.connect(this.effects.inputNode);
 
-        //this.bufferSource.connect(this.ctx.destination);
-
 
         // pixelsToSeconds
         this.leftTrimBar.startTime = this.pixelToSeconds(this.leftTrimBar.x, bufferDuration);
         this.trimmedDuration = this.pixelToSeconds(this.rightTrimBar.x - this.leftTrimBar.x, bufferDuration);
-        // this.bufferSource.start(0, this.leftTrimBar.startTime, trimmedDuration);
         this.pluginAudioNode.play(this);
 
         this.startTime = this.ctx.currentTime;
@@ -158,19 +136,6 @@ export default class SamplePlayer {
         return newBuffer;
     }
 
-    // newPitchSound(buffer, pitchRate) {
-    //     let newBuffer = this.ctx.createBuffer(
-    //         buffer.numberOfChannels,
-    //         buffer.length,
-    //         this.ctx.sampleRate
-    //     )
-
-    //     for (let i = 0; i < buffer.numberOfChannels; i++) {
-    //         let channelData = buffer.getChannelData(i);
-    //         newBuffer.copyToChannel(channelData, i)
-    //     };
-    // }
-
     pitchedSound(buffer) {
         const ratio = Math.pow(2, -this.semitones / 12);
         const length = buffer.length * ratio;
@@ -182,10 +147,6 @@ export default class SamplePlayer {
                 outputData[i] = inputData[Math.floor(i / ratio)];
             }
         }
-
-        // this.waveformDrawer = new WaveformDrawer();
-        // this.waveformDrawer.init(this.decodedSound, this.canvasWaveform, this.color);
-
         return repitchedBuffer;
     }
 
