@@ -289,6 +289,10 @@ export default class PresetManager {
     }
   }
 
+  static getPresetToSave(presetName) {
+    return this.presetsToSave.find((p) => p.name === presetName);
+  }
+
   static newSamples(samplesURLs, samplesNames, samplesDefaultNames, samplePlayers) {
     return samplesURLs.map((url, index) => {
       if(samplePlayers[index]) {
@@ -591,6 +595,20 @@ export default class PresetManager {
     // localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(currentListMidiLearn));
   }
 
+  static clearMidiMappingFromCurrentPreset(presetName) {
+    const presetToSave = this.presetsToSave.find((p) => p.name === presetName);
+    if(!presetToSave.midiLearn) return;
+    const currentListMidiLearn = presetToSave.midiLearn;
+    currentListMidiLearn.forEach(elem => {
+      if(elem.cc.cc) {
+        elem.cc = {};
+      }
+    }
+    );
+    localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(currentListMidiLearn));
+    this.saveAllPresets();
+  }
+
   static resetAllMidiLearning() {
     if(localStorage.WebAudioControlsMidiLearn) {
       const midiLearn = JSON.parse(localStorage.WebAudioControlsMidiLearn);
@@ -600,7 +618,22 @@ export default class PresetManager {
       localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(midiLearn));
     }
   }
+
+  static setDefaultMidiMapping(presetName, switchPads, defaultRootMidiNote) {
+    let midiLearnList = [];
+    const preset = this.getCurrentPreset(presetName);
+    if(!preset.midiLearn) {
+      switchPads.forEach((switchPad) => {
+        // switchPad.midiController = {};
+        const index = switchPad.id.match(/\d+/g)[0];
+        midiLearnList.push({id: switchPad.id, cc: {cc: defaultRootMidiNote + parseInt(index), channel: 0}});
+        // switchPad.midiController = defaultRootMidiNote + parseInt(index);
+      });
+      preset.midiLearn = midiLearnList;
+    }
+  }
 }
+
 
 
 

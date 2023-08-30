@@ -473,6 +473,7 @@ select:hover {
 	font-size: 10px;
 	border: 1px solid black;
 	border-radius: 10px;
+	font-family: 'Share Tech Mono', monospace;
 }
 
 
@@ -792,9 +793,10 @@ option {
 	border: 1px solid red;
 }
 
-.knobDisabled{
+.element-disabled{
 	pointer-events: none;
 	opacity: 0.5;
+	transform: scale(1);
 }
 
 #formHelp {
@@ -938,7 +940,7 @@ let template = `
 		<div id="choice">
 			<button class="choiceBtn" id="choiceExplorer">Freesound</button>
 			<button class="choiceBtn" id="choiceKnobs">Effects</button>
-			<button class="choiceBtn" id="choiceMIDI">Midi</button>
+			<button class="choiceBtn" id="choiceMIDI">Midi/Keyboard</button>
 
 			<div id="knobs">
 				<div class="knob" id="volumeGain">
@@ -1003,6 +1005,7 @@ let template = `
 				<button id="clearMidiLearn" class="midiClassBtn">Clear all Midi Mapping</button>
 				<button id="resetMidiLearn" class="midiClassBtn">Reset Midi Mapping</button>
 				<button id="enableVelocity" class="midiClassBtn">Velocity off</button>
+				<button id="enableKeyboard" class="midiClassBtn">Keyboard off</button>
 			</div>
 		</div>
 	</div>
@@ -1077,6 +1080,8 @@ export default class SamplerHTMLElement extends HTMLElement {
 		this.mousePos = { x: 0, y: 0 };
 
 		this.enableVelocity = false;
+
+		this.enableKeyboard = true;
 
 		/*
 		console.log("getBaseURL : " + getBaseURL());
@@ -1201,7 +1206,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 	setKnobs() {
 		const effectKnobs = this.shadowRoot.querySelectorAll('.knob');
-		effectKnobs.forEach((effectKnob) => { effectKnob.classList.add('knobDisabled')});
+		effectKnobs.forEach((effectKnob) => { effectKnob.classList.add('element-disabled')});
 		
 		this.shadowRoot.querySelector('#knob1').addEventListener('input', (e) => {
 			//this.plugin.audioNode.setParamsValues({ volumeGain: e.target.value });
@@ -1248,6 +1253,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		//button reverse
 		const btnReverse = this.shadowRoot.querySelector('#reverse');
 		btnReverse.disabled = true;
+		btnReverse.classList.add('element-disabled');
 		btnReverse.addEventListener('click', (e) => {
 			if (this.player == undefined) return;
 
@@ -1267,22 +1273,23 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const envBtn = this.shadowRoot.querySelector('#envBtn');
 		const envKnobs = this.shadowRoot.querySelectorAll('.knobEnv');
 		//disable all knobs
-		envKnobs.forEach((envKnob) => { envKnob.classList.add('knobDisabled') });
+		envKnobs.forEach((envKnob) => { envKnob.classList.add('element-disabled') });
 		envBtn.disabled = true;
+		envBtn.classList.add('element-disabled');
 		envBtn.addEventListener('click', (e) => {
 			if (this.player == undefined) return;
 			if (!this.player.enableAdsr) {
 				envBtn.innerHTML = "Disable";
 				this.player.enableAdsr = true;
 				envBtn.classList.add('choose');
-				envKnobs.forEach((envKnob) => { envKnob.classList.remove('knobDisabled') });
+				envKnobs.forEach((envKnob) => { envKnob.classList.remove('element-disabled') });
 				//console.log("this.player.enableAdsr = " + this.player.enableAdsr)
 			}
 			else {
 				envBtn.innerHTML = "Enable";
 				this.player.enableAdsr = false;
 				envBtn.classList.remove('choose');
-				envKnobs.forEach((envKnob) => { envKnob.classList.add('knobDisabled') });
+				envKnobs.forEach((envKnob) => { envKnob.classList.add('element-disabled') });
 				//console.log("this.player.enableAdsr = " + this.player.enableAdsr)
 			}
 		});
@@ -1317,7 +1324,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 	//initialize knobs values
 	initKnobs() {
 		const effectKnobs = this.shadowRoot.querySelectorAll('.knob');
-		effectKnobs.forEach((effectKnob) => { effectKnob.classList.add('knobDisabled')});
+		effectKnobs.forEach((effectKnob) => { effectKnob.classList.add('element-disabled')});
 
 		const btnReverse = this.shadowRoot.querySelector('#reverse');
 		btnReverse.disabled = true;
@@ -1327,7 +1334,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const envBtn = this.shadowRoot.querySelector('#envBtn');
 		const envKnobs = this.shadowRoot.querySelectorAll('.knobEnv');
 		//disable all env knobs
-		envKnobs.forEach((envKnob) => { envKnob.classList.add('knobDisabled') });
+		envKnobs.forEach((envKnob) => { envKnob.classList.add('element-disabled') });
 		envBtn.disabled = true;
 		envBtn.classList.remove('choose');
 
@@ -1355,6 +1362,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		divKnob.style.display = 'none';
 		divExplorer.style.display = 'inline-block';
 		divMIDI.style.display = 'none';
+
 
 		knob.addEventListener('click', (e) => {
 			divKnob.style.display = 'grid';
@@ -1403,13 +1411,15 @@ export default class SamplerHTMLElement extends HTMLElement {
 			save.classList.remove('saved');
 
 			// Désactive les document.onkeyup et document.onkeydown
-			this.removeKeyboardPress();
+			// this.removeKeyboardPress();
+			this.enableKeyboard = false;
 		});
 
 
 		// Ajoute les listeners sur le clavier
 		apiKeyInput.addEventListener('blur', (e) => {
-			this.setKeyboardPress();
+			// this.setKeyboardPress();
+			this.enableKeyboard = true;
 		});
 
 		// Appuie sur le bouton de sauvegarde lorsque l'on 'Enter' dans l'input
@@ -1501,14 +1511,16 @@ export default class SamplerHTMLElement extends HTMLElement {
 					// b.appendChild(deleteSample);
 					label.style.display = "inline-block";
 					input.style.display = "none";
-					this.setKeyboardPress();
+					// this.setKeyboardPress();
+					this.enableKeyboard = true;
 					//this.setPad(index);
 					//this.setSwitchPad(index);
 					
 				}
 
 				input.addEventListener('focus', (e) => {
-					this.removeAllKeyboardPress();
+					// this.removeAllKeyboardPress();
+					this.enableKeyboard = false;
 					// si l'on presse la touche 'Enter'
 					input.addEventListener('keyup', (e) => {
 						if (e.key === 'Enter') {
@@ -1535,12 +1547,14 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 		// Désactive les document.onkeyup et document.onkeydown
 		search.addEventListener('focus', (e) => {
-			this.removeKeyboardPress();
+			// this.removeKeyboardPress();
+			this.enableKeyboard = false;
 		});
 
 		// Ajoute les listeners sur le clavier
 		search.addEventListener('blur', (e) => {
-			this.setKeyboardPress();
+			// this.setKeyboardPress();
+			this.enableKeyboard = true;
 		});
 
 		let option = "";
@@ -2085,6 +2099,10 @@ export default class SamplerHTMLElement extends HTMLElement {
 					button.classList.remove('selected');
 				});
 
+				//Disable create NoteSet
+				this.shadowRoot.querySelector('#createNoteSet').disabled = true;
+				this.shadowRoot.querySelector('#createNoteSet').classList.add('element-disabled');
+
 				// On ajoute la class .selected au bouton cliqué
 				b.classList.add('selected');
 
@@ -2413,7 +2431,14 @@ export default class SamplerHTMLElement extends HTMLElement {
 					switchpad.querySelector('.button_midi_note').remove();
 				}
 			});
-			localStorage.removeItem("WebAudioControlsMidiLearn");
+			const currentPreset = this.shadowRoot.querySelector('#selectPreset').value;
+			// if(localStorage.presets && PresetManager.getMidiLearnListFromCurrentPreset(currentPreset)){
+			// 	PresetManager.clearMidiMappingFromCurrentPreset(currentPreset);
+			// }
+			let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
+			let listMidiLearn = JSON.parse(stockMidiLearn);
+			listMidiLearn.map(element => {element.cc = {}});
+			localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(listMidiLearn));
 		};
 	}
 
@@ -2438,6 +2463,8 @@ export default class SamplerHTMLElement extends HTMLElement {
 						this.setMidiNoteName(index, currentMidiLearn.cc.cc);
 					}
 				)
+			} else {
+				this.defaultMidiMapping();
 			}
 		};
 	}
@@ -2448,31 +2475,51 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const defaultRootMidiNote = 60;
 		let midiLearnList = [];
 		const preset = this.shadowRoot.querySelector('#selectPreset').value;
-		if(localStorage.presets && PresetManager.getMidiLearnListFromCurrentPreset(preset)){
-			if(!manualClick) {
+		PresetManager.setDefaultMidiMapping(preset, switchPads, defaultRootMidiNote);
+		if(localStorage.presets && !manualClick) {
+			if(PresetManager.getMidiLearnListFromCurrentPreset(preset)) {
 				const midiList = PresetManager.getMidiLearnListFromCurrentPreset(preset);
 				midiList.forEach((midi) => {
 					if(midi.id.includes('switchpad')) {
 						this.setMidiNoteName(midi.id.match(/\d+/g)[0], midi.cc.cc);
 					}
 				});
-				return;
-			};
-		};
-		if(localStorage.WebAudioControlsMidiLearn){
+			} else {
+				switchPads.forEach((switchPad) => {
+					// switchPad.midiController = {};
+					const index = switchPad.id.match(/\d+/g)[0];
+					this.setMidiNoteName(index, defaultRootMidiNote + parseInt(index));
+					midiLearnList.push({id: switchPad.id, cc: {cc: defaultRootMidiNote + parseInt(index), channel: 0}});
+					switchPad.midiController.channel = 0;
+					switchPad.midiController.cc = defaultRootMidiNote + parseInt(index);
+				});
+			}
+			//if preset has no midi mapping and no midi learn, clear all midi learn 
+			// else{
+			// 	switchPads.forEach((switchPad) => {
+			// 		midiLearnList.push({id: switchPad.id, cc: {}});
+			// 		if(switchPad.querySelector('.button_midi_note')){
+			// 			switchPad.querySelector('.button_midi_note').remove();
+			// 		}
+			// 	});
+			// }
+		}
+		else if(localStorage.WebAudioControlsMidiLearn){
 			midiLearnList = JSON.parse(localStorage.WebAudioControlsMidiLearn);
 			switchPads.forEach((switchPad) => {
-				switchPad.midiController = {};
+				// switchPad.midiController = {};
 				const index = switchPad.id.match(/\d+/g)[0];
 				this.setMidiNoteName(index, defaultRootMidiNote + parseInt(index));
 				const currentMidiLearn = midiLearnList.find(element => element.id == switchPad.id);
 				currentMidiLearn.cc.channel = 0;
 				currentMidiLearn.cc.cc = defaultRootMidiNote + parseInt(index);
-				switchPad.midiController.cc = currentMidiLearn.cc;
+				switchPad.midiController.cc = currentMidiLearn.cc.cc;
+				switchPad.midiController.channel = currentMidiLearn.cc.channel;
+				
 			});
 		} else {
 			switchPads.forEach((switchPad) => {
-				switchPad.midiController = {};
+				// switchPad.midiController = {};
 				const index = switchPad.id.match(/\d+/g)[0];
 				this.setMidiNoteName(index, defaultRootMidiNote + parseInt(index));
 				midiLearnList.push({id: switchPad.id, cc: {cc: defaultRootMidiNote + parseInt(index), channel: 0}});
@@ -2480,8 +2527,9 @@ export default class SamplerHTMLElement extends HTMLElement {
 				switchPad.midiController.channel = 0;
 			});
 		}
-		
-		localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(midiLearnList));
+		if(midiLearnList.length > 0) {
+			localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(midiLearnList));
+		}
 	}
 
 	setSwitchPad(index) {
@@ -2595,17 +2643,20 @@ export default class SamplerHTMLElement extends HTMLElement {
 			let listMidiLearn = JSON.parse(stockMidiLearn);
 			const currentMidiLearn = listMidiLearn.find(element => element.id == switchPad.id);
 			this.setMidiNoteName(index, currentMidiLearn.cc.cc);
+			// this.defaultMidiMapping();
 			return;
 		} else if(localStorage.presets && PresetManager.getMidiLearnListFromCurrentPreset(currentPreset)) {
 			const currentMidiLearn = PresetManager.getMidiLearnFromCurrentPreset(currentPreset, switchPad.id);
+			if(currentMidiLearn === undefined) return;
 			this.setMidiNoteName(index, currentMidiLearn.cc.cc);
+			// this.defaultMidiMapping();
 		}
 	}
 
 	setKnobsEffects() {
 		// enable effects knobs
 		const effectKnobs = this.shadowRoot.querySelectorAll('.knob');
-		effectKnobs.forEach((effectKnob) => { effectKnob.classList.remove('knobDisabled') });
+		effectKnobs.forEach((effectKnob) => { effectKnob.classList.remove('element-disabled') });
 
 		// set effects knobs to current values
 		this.shadowRoot.querySelector('#knob1').value = this.player.effects.volumeGain;
@@ -2618,6 +2669,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 		const btnReverse = this.shadowRoot.querySelector('#reverse');
 		btnReverse.disabled = false;
+		btnReverse.classList.remove('element-disabled');
 
 		btnReverse.value = this.player.reverseValue;
 		this.player.reversed ? btnReverse.classList.add('choose') : btnReverse.classList.remove('choose');
@@ -2631,16 +2683,17 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const envBtn = this.shadowRoot.querySelector('#envBtn');
 		const envKnobs = this.shadowRoot.querySelectorAll('.knobEnv');
 		envBtn.disabled = false;
-		envKnobs.forEach((envKnob) => { envKnob.classList.remove('knobDisabled') });
+		envBtn.classList.remove('element-disabled');
+		envKnobs.forEach((envKnob) => { envKnob.classList.remove('element-disabled') });
 
 		if (!this.player.enableAdsr) {
 			envBtn.innerHTML = 'Enable';
 			envBtn.classList.remove('choose');
-			envKnobs.forEach((envKnob) => { envKnob.classList.add('knobDisabled') });
+			envKnobs.forEach((envKnob) => { envKnob.classList.add('element-disabled') });
 		} else {
 			envBtn.innerHTML = 'Disable';
 			envBtn.classList.add('choose');
-			envKnobs.forEach((envKnob) => { envKnob.classList.remove('knobDisabled') });
+			envKnobs.forEach((envKnob) => { envKnob.classList.remove('element-disabled') });
 		}
 	}
 
@@ -2700,8 +2753,6 @@ export default class SamplerHTMLElement extends HTMLElement {
 		this.loadCurrentPreset(currentPresetName, promptAvailable);
 		//Create Note Set
 		this.createNoteSet(promptAvailable);
-		const noteSetBtn = this.shadowRoot.querySelector('#createNoteSet');
-		noteSetBtn.disabled = true;
 		// noteSetBtn.classList.add('btn-disabled');
 
 		// Lorsque le preset est changé, on charge les nouveaux sons
@@ -2749,7 +2800,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		// PresetManager.loadMidiLearnFromCurrentPreset(presetName, switchPads);
 
 		//load auto Midi Mapping by default
-		this.defaultMidiMapping();
+		// this.defaultMidiMapping();
 		// this.updateMidiMapping();
 
 		//reset Waveform sample label name
@@ -2785,6 +2836,10 @@ export default class SamplerHTMLElement extends HTMLElement {
 		//create preset button
 		const createPreset = this.shadowRoot.querySelector('#createPreset');
 		createPreset.onclick = () => {this.createPreset("custom preset",switchPads,promptAvailable);};
+
+		const noteSetBtn = this.shadowRoot.querySelector('#createNoteSet');
+		noteSetBtn.disabled = true;
+		noteSetBtn.classList.add('element-disabled');
 
 	}
 
@@ -2896,7 +2951,23 @@ export default class SamplerHTMLElement extends HTMLElement {
 					switchPad.midiController = {};
 				}
 				const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-				PresetManager.loadMidiControllerFromCurrentPreset(currentPreset, switchPads);
+				//if current preset has midi learn, load midi learn from current preset, else load default midi mapping
+				if(localStorage.presets && PresetManager.getMidiLearnListFromCurrentPreset(currentPreset)){
+					PresetManager.loadMidiControllerFromCurrentPreset(currentPreset, switchPads);
+					switchPads.forEach((switchPad) => {
+						const index = switchPad.id.match(/\d+/g)[0];
+						const currentMidiLearn = PresetManager.getMidiLearnFromCurrentPreset(currentPreset, switchPad.id);
+						if(currentMidiLearn.cc.cc === undefined) {
+							if(switchPad.querySelector('.button_midi_note')){
+								switchPad.querySelector('.button_midi_note').remove();
+							}
+						}
+						this.setMidiNoteName(index, currentMidiLearn.cc.cc);
+					});
+				}
+				else {
+					this.defaultMidiMapping();
+				}
 			});
 		bl.load();
 		}
@@ -2929,6 +3000,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 					const switchPad = this.shadowRoot.querySelector('#switchpad' + i);
 					switchPad.midiController = {};
 				}
+				this.defaultMidiMapping();
 			});
 
 			bl.load();
@@ -2939,16 +3011,44 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 	promptUser = async() => {
 		if(!this.shadowRoot.querySelector('html-prompt')) {
-			this.removeAllKeyboardPress();
+			// this.removeAllKeyboardPress();
 			const resultExplorerPads = this.shadowRoot.querySelectorAll('.resultExplorer');
 			//hide all resultExplorerPads
 			resultExplorerPads.forEach((resultExplorerPad) => {
 				resultExplorerPad.style.display = "none";
 			});
+
+
 			let promptElement = document.createElement('html-prompt');
 			this.shadowRoot.querySelector("#results").append(promptElement);
+
+			//display explorer choice and hide the others
+			const knob = this.shadowRoot.querySelector('#choiceKnobs');
+			const explorer = this.shadowRoot.querySelector('#choiceExplorer');
+			const MIDI = this.shadowRoot.querySelector('#choiceMIDI');
+
+			const divKnob = this.shadowRoot.querySelector('#knobs');
+			const divExplorer = this.shadowRoot.querySelector('#explorer');
+			const divMIDI = this.shadowRoot.querySelector('#MIDI');
+
+			explorer.classList.add('choose');
+
+			divKnob.style.display = 'none';
+			divExplorer.style.display = 'inline-block';
+			divMIDI.style.display = 'none';
+
+			knob.classList.remove('choose');
+			explorer.classList.add('choose');
+			MIDI.classList.remove('choose');
+
+			promptElement.addEventListener('focus', (e) => {
+				console.log("focus");
+				// this.removeKeyboardPress();
+				this.enableKeyboard = false;
+			})
 			promptElement.addEventListener('promptClosed', (e) => {
-				this.setKeyboardPress();
+				// this.setKeyboardPress();
+				this.enableKeyboard = true;
 			});
 			const response = await promptElement.showPrompt("Enter preset name!");
 
@@ -2972,8 +3072,9 @@ export default class SamplerHTMLElement extends HTMLElement {
 		
 		NoteSet.buildScaleMenu(selectMenuScale);
 
-		if ((!this.player) || (selectMenuScale.valu === "")) {
+		if ((!this.player) || (selectMenuScale.value === "")) {
 			noteSetBtn.disabled = true;
+			noteSetBtn.classList.add('element-disabled');
 		}
 		selectMenuScale.onchange = () => {
 			if (selectMenuScale.value === "") {
@@ -2981,6 +3082,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			} else {
 				if(this.player) {
 					noteSetBtn.disabled = false;
+					noteSetBtn.classList.remove('element-disabled');
 					// noteSetBtn.classList.remove('btn-disabled');
 				}
 			}
@@ -2990,13 +3092,16 @@ export default class SamplerHTMLElement extends HTMLElement {
 			switchPad.onclick = () => {
 				if(selectMenuScale.value !== "") {
 					noteSetBtn.disabled = false;
+					noteSetBtn.classList.remove('element-disabled');
 					// noteSetBtn.classList.remove('btn-disabled');
 				}
 			};
 		});
+
 		
 		noteSetBtn.onclick = async() => {
 			if(!this.player) {return};
+			const currentPlayer = this.player;
 
 			if(selectMenuScale.value === "") return;
 			
@@ -3033,23 +3138,20 @@ export default class SamplerHTMLElement extends HTMLElement {
 			}
 			else {
 				const response = await this.promptUser();
-				if(response === "") return;
+				if(response === "" || !response) return;
 				if(PresetManager.getCurrentPreset(response)) PresetManager.removePreset(response);
 				presetName = response;
-
-				this.setKeyboardPress();
+				// this.setKeyboardPress();
 			}
-		
-			console.log(presetName);
+			
 			//change the index of the player in the samplePlayers array
-			// this.player.index = this.samplePlayers.indexOf(this.player);
-			const playerIndex = this.samplePlayers.indexOf(this.player);
+			const playerIndex = this.samplePlayers.indexOf(currentPlayer);
 			
 			this.swapSample(playerIndex, 7);
 			const fundamentalIndex = 7;
 
 			this.samplePlayers.forEach((player, index) => {
-				if(player && player !== this.player) {
+				if(player && player !== currentPlayer) {
 					//clean samplePlayer
 					this.deleteSample(index);
 				}
@@ -3092,12 +3194,12 @@ export default class SamplerHTMLElement extends HTMLElement {
 			this.setNoteValue(fundamentalIndex, newNamesScale.ascending[0]);
 
 			//if the root player is pitched, we need to pitch the new players
-			const newPlayer = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", this.player.newDecodedSound, this.plugin.audioNode, this.player.semitones);
+			const newPlayer = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", currentPlayer.newDecodedSound, this.plugin.audioNode, currentPlayer.semitones);
 			newPlayer.decodedSound = newPlayer.newDecodedSound;
 			newPlayer.semitones = 0;
 			this.setKnobsEffects();
 			this.samplePlayers[fundamentalIndex] = newPlayer;
-			this.samplePlayers[fundamentalIndex] = NoteSet.setEffectsSamplePlayer(this.samplePlayers[fundamentalIndex], this.player);
+			this.samplePlayers[fundamentalIndex] = NoteSet.setEffectsSamplePlayer(this.samplePlayers[fundamentalIndex], currentPlayer);
 
 			
 			let indexAscending = 1;
@@ -3109,7 +3211,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 				SamplerHTMLElement.defaultName[i] = SamplerHTMLElement.defaultName[fundamentalIndex];
 				SamplerHTMLElement.URLs[i]= SamplerHTMLElement.URLs[fundamentalIndex];
 
-				this.samplePlayers[i] = NoteSet.setEffectsSamplePlayer(this.samplePlayers[i], this.player);
+				this.samplePlayers[i] = NoteSet.setEffectsSamplePlayer(this.samplePlayers[i], currentPlayer);
 
 				this.samplePlayers[i].semitones = ascendingNotesSemitones[indexAscending];
 				this.setSwitchPad(i);
@@ -3125,7 +3227,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 				SamplerHTMLElement.defaultName[i] = SamplerHTMLElement.defaultName[fundamentalIndex];
 				SamplerHTMLElement.URLs[i]= SamplerHTMLElement.URLs[fundamentalIndex];
 
-				this.samplePlayers[i] = NoteSet.setEffectsSamplePlayer(this.samplePlayers[i], this.player);
+				this.samplePlayers[i] = NoteSet.setEffectsSamplePlayer(this.samplePlayers[i], currentPlayer);
 
 				this.samplePlayers[i].semitones = descendingNotesSemitones[indexDescending];
 				this.setSwitchPad(i);
@@ -3136,7 +3238,6 @@ export default class SamplerHTMLElement extends HTMLElement {
 			this.setDefaultPadsKeyValue();
 
 			PresetManager.createPreset(presetName, 'noteSet', this.samplePlayers, SamplerHTMLElement, switchPads);
-			// console.log(PresetManager.presets);
 			PresetManager.saveAllPresets();
 			const presetSelectMenu = this.shadowRoot.querySelector('#selectPreset');
 			PresetManager.buildPresetMenu(presetSelectMenu);
@@ -3192,7 +3293,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 				if(response === "") return;
 				if(PresetManager.getCurrentPreset(response)) PresetManager.removePreset(response);
 				presetName = response;
-				this.setKeyboardPress();
+				// this.setKeyboardPress();
 				PresetManager.createPreset(presetName, type, this.samplePlayers, SamplerHTMLElement, switchPads);
 				// console.log(PresetManager.presets);
 				PresetManager.saveAllPresets();
@@ -3210,7 +3311,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		this.initKnobs();
 		const preset = this.shadowRoot.querySelector('#selectPreset');
 		const presetName = preset.value;
-
+		// this.defaultMidiMapping();
 		PresetManager.savePresets(presetName, this.samplePlayers, SamplerHTMLElement);
 	
 		this.loadCurrentPreset(presetName);
@@ -3242,10 +3343,10 @@ export default class SamplerHTMLElement extends HTMLElement {
 		// console.log(PresetManager.isFactoryPreset(preset));
 		if(PresetManager.isFactoryPreset(preset)) {
 			PresetManager.resetPreset(preset);
-			PresetManager.resetAllMidiLearning();
+			// PresetManager.resetAllMidiLearning();
 			this.loadCurrentPreset(preset);
-			PresetManager.loadMidiLearnFromCurrentPreset(presetSelectMenu.value, switchPads);
-			this.defaultMidiMapping();
+			// PresetManager.loadMidiLearnFromCurrentPreset(presetSelectMenu.value, switchPads);
+			// this.defaultMidiMapping();
 		} else {
 			PresetManager.removePreset(preset);
 			PresetManager.resetAllMidiLearning();
@@ -3255,7 +3356,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			
 			this.loadCurrentPreset(presetSelectMenu.value);
 			//reset midi learn configuration and load midi learn from current preset
-			PresetManager.loadMidiLearnFromCurrentPreset(presetSelectMenu.value, switchPads);
+			// PresetManager.loadMidiLearnFromCurrentPreset(presetSelectMenu.value, switchPads);
 		}
 		// //reset all midi learning Gui
 		// const switchpads = this.shadowRoot.querySelectorAll('.switchpad');
@@ -3329,7 +3430,21 @@ export default class SamplerHTMLElement extends HTMLElement {
 	}
 
 	setKeyboardPress() {
-		document.addEventListener('keydown',(e) => {
+		const enableKeysBtn = this.shadowRoot.querySelector('#enableKeyboard');
+		let localEnableKeyboard = false;
+		enableKeysBtn.addEventListener('click', (e) => {
+			if(localEnableKeyboard) {
+				localEnableKeyboard= false;
+				enableKeysBtn.textContent = "Keyboard On"
+				enableKeysBtn.classList.remove('choose');
+			} else {
+				localEnableKeyboard = true;
+				enableKeysBtn.textContent = "Keyboard On"
+				enableKeysBtn.classList.add('choose');
+			}
+		});
+		this.shadowRoot.addEventListener('keydown',(e) => {
+			if(!this.enableKeyboard || !localEnableKeyboard) return;
 			//evite la répétition de l'évènement -> sample qui joue en boucle
 			if (e.repeat) {
 				e.preventDefault();
@@ -3387,7 +3502,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			}
 		});
 
-		document.addEventListener('keyup',(e) => {
+		this.shadowRoot.addEventListener('keyup',(e) => {
 			switch (e.code) {
 				case 'Digit1':
 					//this.shadowRoot.querySelector('#pad12').classList.remove('active');
@@ -3443,8 +3558,10 @@ export default class SamplerHTMLElement extends HTMLElement {
 	}
 
 	removeKeyboardPress = () => {
-		document.onkeydown = null;
-		document.onkeyup = null;
+		// document.onkeydown = null;
+		// document.onkeyup = null;
+		document.addEventListener('keydown',(e) => {});
+		document.addEventListener('keyup',(e) => {});
 
 		// Ajoute un listener sur la touche espace pour lancer la recherche
 		document.onkeydown = (e) => {

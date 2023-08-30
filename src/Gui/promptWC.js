@@ -51,6 +51,10 @@ class HTMLPrompt extends HTMLElement {
     
     this.closeButton.addEventListener('click', (evt) => this.onClose(evt));
     this.closeEvent = new Event('promptClosed');
+    // this.inputField.addEventListener('focus', (evt) => {
+    //   evt.stopPropagation();
+    //   evt.preventDefault();
+    // });
   }
 
   async showPrompt(message) {
