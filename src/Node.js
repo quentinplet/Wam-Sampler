@@ -39,8 +39,7 @@ export default class SamplerNode extends CompositeAudioNode {
 
 	
 	play(samplePlayer) {
-		// on connecte le samplePlayer au graphe du noeud du plugin
-		// et on le démarre
+		// connect the samplePlayer to the plugin node graph, then start it
 		samplePlayer.connect(this.outputNode);
 
 		//et on le joue
@@ -51,7 +50,7 @@ export default class SamplerNode extends CompositeAudioNode {
 		if(!this.gui) return {
 			presetName: this.currentPreset,
 		};
-		console.log("getState currentPreset = " + this.currentPreset);
+		// console.log("getState currentPreset = " + this.currentPreset);
 		const currentState = this.gui.getCurrentState(this.currentPreset, this.gui.samplePlayers);
 		return {
 			presetName: this.currentPreset,
@@ -62,7 +61,7 @@ export default class SamplerNode extends CompositeAudioNode {
 	setState(state){
 		if(!this.gui) return;
 		console.log("setState currentPreset = " + state.presetName);
-		// demander à la GUI de loader le preset
+		//ask GUI to load the preset
 		// this.gui.loadCompletePreset(state.presetName);
 		this.gui.loadCurrentPreset(state.presetName);
 

@@ -16,7 +16,7 @@ export default class EffectStack {
 
         this.panNode = this.ctx.createStereoPanner();
 
-        //Filtres pour le réglage du Tone
+        //Filters for Tone setting
         this.lowShelfNode = this.ctx.createBiquadFilter();
         this.highShelfNode = this.ctx.createBiquadFilter();
         this.lowShelfNode.type = 'lowshelf';
@@ -24,10 +24,10 @@ export default class EffectStack {
 
         this.outputNode = this.ctx.createGain();
 
-        //Compresseur
+        //Compressor
         this.compressorNode = this.ctx.createDynamicsCompressor();
 
-        //Enveloppe ADSR
+        //ADSR envelope
         this.opts = {};
 
         this.setDefaultValues();
@@ -60,7 +60,7 @@ export default class EffectStack {
         this.attackValue = 0.2;
         this.decayValue = 0.2;
         this.sustainValue = 1;
-        //this.sustime = 5; //temps de maintien de la note
+        //this.sustime = 5; //time for the sound to be sustained
         this.releaseValue = 0.3;
 
     }

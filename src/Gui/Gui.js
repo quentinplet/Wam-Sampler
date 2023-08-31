@@ -34,7 +34,7 @@ function changePathToAbsolute(pathArray) {
 }
 
 
-// This works when youuse a bundler such as rollup
+// This works when you use a bundler such as rollup
 // If you do no wan to use a bundler, then  look at other examples
 // that build in pure JS the syles and html template directly
 // in the code...
@@ -95,6 +95,10 @@ let style = `
 
 	box-shadow: 10px 10px 5px #888888;	
 	border-radius: 10px;
+}
+
+#sampler:focus {
+	outline: none;
 }
 
 #sampler:before {
@@ -236,6 +240,7 @@ select:hover {
 
 #inputSampleName {
 	display: none;
+	height: 20px;
 }
 
 /*
@@ -788,7 +793,7 @@ option {
 `;
 
 let template = `
-<div id="sampler">
+<div id="sampler" tabindex="0">
 	
 	<div id="matrix">
 		<div id="p12" class="padDiv">
@@ -1051,6 +1056,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 		//By default the keyboard touch for typing is enabled
 		this.enableKeyboard = true;
+		this.enableKeyboardPlay = false;
 
 		// If the prompt menu is no available
 		this.promptAvailable = false;
@@ -1072,35 +1078,35 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 	connectedCallback() {
 		this.setupMidiListeners(this.plugin.audioNode);
-		// On récupère les canvas pour la forme d'onde
+		// get the canvas for the waveform
 		this.canvas = this.shadowRoot.querySelector('#myCanvas');
 		this.canvasOverlay = this.shadowRoot.querySelector('#myCanvasOverlay');
-		// On récupère les contextes
+		// get the canvas context
 		this.canvasContext = this.canvas.getContext('2d');
 		this.canvasContextOverlay = this.canvasOverlay.getContext('2d');
 
-		// Ajoute les listeners sur les boutons de choix
+		// add listeners on choiceButtons
 		this.setChoiceButtons();
 
-		// Ajoute les listeners sur les boutons d'effets
+		// add listeners on knobs effects
 		this.setKnobs();
 
-		// Ajoute les listeners sur l'explorer
+		// add listeners on the freesound Explorer
 		this.setExplorer();
 
-		// Ajoute les listeners sur l'input de l'API key
+		// add listeners on the input of ApiKey
 		this.setApiKey();
 
-		// Ajoute le drag and drop
+		// add drag and drop for switchpads
 		this.setAllDragAndDrop();
 
-		// Ajoute les listeners sur le select des presets
+		// add listeners on the select presets
 		this.setPreset();
 
-		// Ajoute les listeners sur le canvas
+		// add listeners on the canvas
 		this.addCanvasListeners();
 
-		// Ajoute les listeners sur le clavier
+		// add listeners on the keyboard for playing pads
 		this.setKeyboardPress();
 
 		// Set background image style to #sampler html element
@@ -1352,7 +1358,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const apiKeyInput = this.shadowRoot.querySelector('#apiKey');
 		const save = this.shadowRoot.querySelector('#apiKeyButton');
 
-		// Récupère l'API key dans le localStorage
+		// Get the API key from the localStorage
 		if (localStorage.getItem('apiKey') != null) {
 			this.apiKey = localStorage.getItem('apiKey');
 			apiKeyInput.value = this.apiKey;
@@ -1362,21 +1368,20 @@ export default class SamplerHTMLElement extends HTMLElement {
 		
 		apiKeyInput.addEventListener('focus', (e) => {
 			save.classList.remove('saved');
-
-			// Désactive les document.onkeyup et document.onkeydown
+			//disable keyboard events for playin pads
 			this.enableKeyboard = false;
 		});
 
-
-		// Ajoute les listeners sur le clavier
+		//add listeners on keyboard for typing api key
 		apiKeyInput.addEventListener('blur', (e) => {
 			this.enableKeyboard = true;
+			this.shadowRoot.querySelector('#sampler').focus();
 		});
 
-		// Appuie sur le bouton de sauvegarde lorsque l'on 'Enter' dans l'input
+		// click on save button when press enter
 		apiKeyInput.addEventListener('keyup', (e) => {
-			// Si on appuie sur 'Enter'
-			if (e.key === 'Enter') {
+			if (e.code === 'Enter') {
+				this.enableKeyboard = true;
 				save.click();
 				save.classList.add('saved');
 				apiKeyInput.blur();
@@ -1386,7 +1391,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		save.addEventListener('click', (e) => {
 			this.apiKey = apiKeyInput.value;
 
-			// Ajoute l'API key dans le localStorage
+			// add the API key to the localStorage
 			localStorage.setItem('apiKey', this.apiKey);
 
 			save.classList.add('saved');
@@ -1441,14 +1446,17 @@ export default class SamplerHTMLElement extends HTMLElement {
 					}
 					label.style.display = "inline-block";
 					input.style.display = "none";
-					this.enableKeyboard = true;	
+					this.enableKeyboard = true;
+					//focus on the sampler element for event keyboard
+					this.shadowRoot.querySelector('#sampler').focus();
 				}
 
 				input.addEventListener('focus', (e) => {
 					this.enableKeyboard = false;
-					// si l'on presse la touche 'Enter'
+					// if we press enter, we save the name
 					input.addEventListener('keyup', (e) => {
-						if (e.key === 'Enter') {
+						if (e.code === 'Enter') {
+							this.enableKeyboard = true;
 							input.blur();
 						}
 					});
@@ -1470,14 +1478,15 @@ export default class SamplerHTMLElement extends HTMLElement {
 		next.disabled = true;
 		previous.disabled = true;
 
-		// Désactive les document.onkeyup et document.onkeydown
+		// disable keyboard events for playin pads
 		search.addEventListener('focus', (e) => {
 			this.enableKeyboard = false;
 		});
 
-		// Ajoute les listeners sur le clavier
+		// add listeners on keyboard for typing 
 		search.addEventListener('blur', (e) => {
 			this.enableKeyboard = true;
+			this.shadowRoot.querySelector('#sampler').focus();
 		});
 
 		let option = "";
@@ -1486,7 +1495,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		time.innerHTML = 5;
 		time.value = 5;
 
-		// Ajoute les options de temps allant de 1 à 5 secondes
+		// add time options from 1 to 5 seconds
 		for (let i = 1; i <= 5; i++) {
 			option = document.createElement('option');
 			option.value = i;
@@ -1494,7 +1503,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			time.appendChild(option);
 		}
 
-		// Ajoute les options de temps allant de 10 à 20 secondes
+		// add time options from 10 to 20 seconds
 		for (let i = 10; i <= 20; i += 5) {
 			option = document.createElement('option');
 			option.value = i;
@@ -1502,23 +1511,31 @@ export default class SamplerHTMLElement extends HTMLElement {
 			time.appendChild(option);
 		}
 
-		// Ajoute une options de temps infini
+		// add time option for unlimited duration
 		option = document.createElement('option');
 		option.value = 'unlimited';
 		option.innerHTML = 'all';
 		time.appendChild(option);
 
-		// Ajoute les listeners sur le next
+		// add listeners on next and previous buttons
 		next.addEventListener('click', (e) => {
 			numPage++;
 			searchButton.click();
 		});
 
-		// Ajoute les listeners sur le previous
 		previous.addEventListener('click', (e) => {
 			if (numPage > 1) {
 				numPage--;
 				searchButton.click();
+			}
+		});
+
+		// click on search button when press enter
+		search.addEventListener('keyup', (e) => {
+			if (e.code === 'Enter') {
+				this.enableKeyboard = true;
+				searchButton.click();
+				search.blur();
 			}
 		});
 
@@ -1562,20 +1579,20 @@ export default class SamplerHTMLElement extends HTMLElement {
 						});
 
 						let bl = new BufferLoader(this.plugin.audioContext, arrayOfSoundPreviews, this.shadowRoot, (bufferList) => {
-							// on a chargé les sons, on stocke sous forme de tableau
+							// when all sounds are loaded, we store them in an array
 							this.decodedSounds = bufferList;
 							this.explorerDecodedSounds = bufferList;
 
-							// Pour chaque son on créé un SamplePlayer
+							// For each sounds we create a SamplePlayer
 							this.decodedSounds.forEach((decodedSound, index) => {
 
 								this.explorerSamplePlayers[index] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", decodedSound, this.plugin.audioNode, 0);
 
 								const b = this.shadowRoot.querySelector('#result' + index);
 
-								// Passes le button à .set
+								// add the class 'set' to the button
 								b.classList.add('set');
-								// Ajoute l'attribut draggable
+								// add draggable attribute to the button for drag and drop events
 								b.setAttribute('draggable', 'true');
 
 								window.requestAnimationFrame(this.handleAnimationFrame);
@@ -1690,13 +1707,11 @@ export default class SamplerHTMLElement extends HTMLElement {
 			});
 
 			b.addEventListener('dragover', (e) => {
-				//console.log('over')
 				e.stopPropagation();
 				e.preventDefault();
 			});
 
 			b.addEventListener('dragmove', (e) => {
-				//console.log('move');
 				e.preventDefault();
 			});
 
@@ -1711,7 +1726,6 @@ export default class SamplerHTMLElement extends HTMLElement {
 				const dragIndex = e.dataTransfer.getData('id');
 				const dropUrl = e.dataTransfer.getData('url');
 
-				// Si drag index commence par pad
 				if (dragIndex.startsWith('switchpad')) {
 					if (dragIndex != dropIndex) {
 						this.swapSample(dragIndex, dropIndex);
@@ -1735,7 +1749,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 	}
 
 	swapSample = (index1, index2) => {
-		// On enlève le 'pad' du début de l'index
+		// we get the index number
 		const numberRegex = /\d+/g;
 		if(typeof index1 === "string" && typeof index2 === "string") {
 			index1 = index1.match(numberRegex)[0];
@@ -1747,7 +1761,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const div1 = this.shadowRoot.querySelector('#p' + index1);
 		const div2 = this.shadowRoot.querySelector('#p' + index2);
 
-		// On supprime le button delete si il existe
+		// remove the button delete if it exists
 		if (div1.querySelector('.deleteSample')) {
 			div1.querySelector('.deleteSample').remove();
 		}
@@ -1756,10 +1770,8 @@ export default class SamplerHTMLElement extends HTMLElement {
 			div2.querySelector('.deleteSample').remove();
 		}
 
-		// On remet les id corrects
+		// set the correct id
 		div1.querySelector('.switchpad').id = 'switchpad' + index1;
-
-		//div2.querySelector('.padprogress').id = 'progress' + index2;
 		div2.querySelector('.switchpad').id = 'switchpad' + index2;
 
 		const button1 = this.shadowRoot.querySelector('#switchpad' + index1);
@@ -1797,17 +1809,17 @@ export default class SamplerHTMLElement extends HTMLElement {
 		SamplerHTMLElement.URLs[index1] = SamplerHTMLElement.URLs[index2];
 		SamplerHTMLElement.URLs[index2] = tempURL;
 
-		// Echange les noms
+		//Swap names
 		const tempName = SamplerHTMLElement.name[index1];
 		SamplerHTMLElement.name[index1] = SamplerHTMLElement.name[index2]
 		SamplerHTMLElement.name[index2] = tempName;
 
-		//Echange les defaultNames
+		//Swap default names
 		const tempDefaultName = SamplerHTMLElement.defaultName[index1];
 		SamplerHTMLElement.defaultName[index1] = SamplerHTMLElement.defaultName[index2];
 		SamplerHTMLElement.defaultName[index2] = tempDefaultName;
 
-		// Echange les samplesPlayer
+		// Swap SamplePlayers
 		const tempPlayer = this.samplePlayers[index1];
 		this.samplePlayers[index1] = this.samplePlayers[index2];
 		this.samplePlayers[index2] = tempPlayer;
@@ -1816,7 +1828,6 @@ export default class SamplerHTMLElement extends HTMLElement {
 			const buttonText = document.createElement("p");
 			buttonText.classList.add("button_text");
 			buttonText.id = "button_text" + index1;
-			//buttonText.innerHTML = switchPad.textContent;
 			button1.innerHTML = "";
 			button1.appendChild(buttonText);
     	}
@@ -1825,7 +1836,6 @@ export default class SamplerHTMLElement extends HTMLElement {
 			const buttonText = document.createElement("p");
 			buttonText.classList.add("button_text");
 			buttonText.id = "button_text" + index2;
-			//buttonText.innerHTML = switchPad.textContent;
 			button2.innerHTML = "";
 			button2.appendChild(buttonText);
     	}
@@ -1861,13 +1871,11 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 		const padElement = div2.children[0].tagName;
 
-		// On supprime le button delete si il existe
 		if (div2.querySelector('.deleteSample')) {
 			div2.querySelector('.deleteSample').remove();
 		}
 
-		// // On remet les classes correctes
-		 const button = div1.querySelector('.resultButton');
+		const button = div1.querySelector('.resultButton');
 
 		//clone progress bar
 		const progressExplorer = div1.querySelector('.progressExplorer');
@@ -1877,17 +1885,17 @@ export default class SamplerHTMLElement extends HTMLElement {
 		newProgressPad.classList.replace('progressExplorer', 'padprogress');
 		newProgressPad.id = 'progress' + index2;
 
-		// On remet les URLs
+		// get the url of the sound back
 		SamplerHTMLElement.URLs[index2] = url;
 
-		// On remet les noms
+		// get the name of the sound back
 		SamplerHTMLElement.name[index2] = button.innerHTML;
 		SamplerHTMLElement.defaultName[index2] = button.innerHTML;
 
 		//recreate a new SamplePlayer independant of the explorer
 		this.samplePlayers[index2] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", this.explorerDecodedSounds[index1], this.plugin.audioNode, 0);
 		
-		// On configure le bouton
+		// set pads
 		if (padElement === 'WEBAUDIO-SWITCH'){
 			this.setSwitchPad(index2);
 			const padBtn = this.shadowRoot.querySelector('#switchpad' + index2);
@@ -1902,12 +1910,12 @@ export default class SamplerHTMLElement extends HTMLElement {
 			padBtn.classList.add('selected');
 		}
 
-		// On met à jour le player
+		// update player
 		this.player = this.samplePlayers[index2];
 		this.shadowRoot.querySelector('#labelSampleName').innerHTML = button.innerHTML;
 		this.player.drawWaveform();
 
-		// On remet les listeners
+		//set default keyboard value for playing pads
 		this.setDefaultPadKeyValue(index2);
 	}
 
@@ -1932,26 +1940,25 @@ export default class SamplerHTMLElement extends HTMLElement {
 
 
 	setResultSound = (index, name, url) => {
-		// Créé un div resultExplorer pour chaque son
+		// add a div resultExplorer for each sound
 		const div = document.createElement('div');
 		div.classList.add('resultExplorer');
 		div.id = 'resultExplorer' + index;
 		this.shadowRoot.querySelector('#results').appendChild(div);
 
-		// créé un nouveau bouton avec le son et son nom
+		// add a button for each sound
 		const b = document.createElement('button');
 		b.classList.add('resultButton');
 		b.id = 'result' + index;
 		let defaultName = name;
 		b.innerHTML = name;
 		b.addEventListener('click', (e) => {
-			// Si le son est chargé
+			// if the sound is loaded
 			if (this.explorerSamplePlayers[index] != null) {
 				this.stopAllSoundsPads();
 				this.stopAllSoundsExplorer();
 
 				this.player = this.explorerSamplePlayers[index];
-				// Affiche le nom du son dans le div sans le <button>
 				this.shadowRoot.querySelector('#labelSampleName').innerHTML = b.innerHTML.split('<')[0];
 				this.player.drawWaveform();
 				this.player.play();
@@ -1960,7 +1967,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 					b.classList.remove('active');
 				}, 100);
 
-				// On enleve la class .selected de tous les pads
+				// remove the class 'selected' from all the buttons
 				const buttons = this.shadowRoot.querySelectorAll('.padbutton');
 				buttons.forEach((button) => {
 					button.classList.remove('selected');
@@ -1972,7 +1979,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 					switchPad.classList.remove('selected');
 				});
 
-				// On enleve la class .selected de tous les button de l'explorer
+				// remove the class 'selected' from all the buttons of the explorer
 				const buttonsExplorer = this.shadowRoot.querySelectorAll('.resultButton');
 				buttonsExplorer.forEach((button) => {
 					button.classList.remove('selected');
@@ -1982,7 +1989,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 				this.shadowRoot.querySelector('#createNoteSet').disabled = true;
 				this.shadowRoot.querySelector('#createNoteSet').classList.add('element-disabled');
 
-				// On ajoute la class .selected au bouton cliqué
+				// add the class 'selected' to the button
 				b.classList.add('selected');
 
 				this.setLabel(index, b, defaultName);
@@ -2002,10 +2009,10 @@ export default class SamplerHTMLElement extends HTMLElement {
 			e.preventDefault();
 		});
 
-		// Ajoute le bouton à la div
+		// add the button to the div
 		this.shadowRoot.querySelector('#resultExplorer' + index).appendChild(b);
 
-		// Ajoute une progressBar à la div
+		// add a progress bar for each sound
 		const progressExplorer = document.createElement('progress');
 		progressExplorer.classList.add('progressExplorer');
 		progressExplorer.id = 'progressExplorer' + index;
@@ -2312,7 +2319,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			//play the sample
 			this.player.play();
 
-			// On enleve la class .selected de tous les boutons
+			// remove the class 'selected' from all the buttons
 			const buttons = this.shadowRoot.querySelectorAll('.padbutton');
 			buttons.forEach((button) => {
 				button.classList.remove('selected');
@@ -2324,16 +2331,16 @@ export default class SamplerHTMLElement extends HTMLElement {
 				switchPad.classList.remove('selected');
 			});
 
-			// On enleve la class .selected de tous les button de l'explorer
+			// remove the class 'selected' from all the buttons of the explorer
 			const buttonsExplorer = this.shadowRoot.querySelectorAll('.resultButton');
 			buttonsExplorer.forEach((button) => {
 				button.classList.remove('selected');
 			});
 
-			// On ajoute la class .selected au bouton cliqué
+			// add 'selected' class to the pad
 			switchPad.classList.add('selected');
 
-			//on peut maitenant renommer le sample
+			//we can now rename the sample
 			this.setLabel(index, switchPad);
 
 
@@ -2403,20 +2410,20 @@ export default class SamplerHTMLElement extends HTMLElement {
 		const b = this.shadowRoot.querySelector('#switchpad' + index);
 		const midiLearnText = b.querySelector('.button_midi_note');
 
-		// Supprime le click du bouton de suppression
+		// remove the click of the delete button
 		b.removeChild(deleteSample);
 
-		// Remet la valeur du progress bar à 0
+		// Put back the value of the progress bar to 0
 		const progressBar = this.shadowRoot.querySelector('#progress' + index);
 		progressBar.value = 0;
 
-		// Suprime le click listener
+		// Delete click listener
 		b.onmousedown = null;
 
-		// Stop le samplePlayer
+		// Stop samplePlayer
 		this.samplePlayers[index].stop();
 
-		// Si b est le bouton actif, on clear le canvas
+		// if the pad is the current pad selected, remove the canvas
 		if (b.classList.contains('selected')) {
 			this.canvasContext.clearRect(0, 0, this.canvas.width, this.canvas.height);
 			this.canvasContextOverlay.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -2424,12 +2431,12 @@ export default class SamplerHTMLElement extends HTMLElement {
 			this.shadowRoot.querySelector('#labelSampleName').innerHTML = 'Waveform';
 		}
 
-		// Supprime le samplePlayer
+		// Delete the samplePlayer
 		this.samplePlayers[index] = null;
 		SamplerHTMLElement.URLs[index] = '';
 		SamplerHTMLElement.name[index] = '';
 
-		// Supprime le bouton du sample
+		// Delete the pad
 		b.innerHTML = '';
 		b.classList.remove('set');
 		b.classList.remove('selected');
@@ -2454,9 +2461,9 @@ export default class SamplerHTMLElement extends HTMLElement {
 		//Create Note Set
 		this.createNoteSet();
 
-		// Lorsque le preset est changé, on charge les nouveaux sons
+		// When the preset is loaded, we load the new sounds
 		presetSelectMenu.onchange = () => {
-			// Arreter tout les sons
+			// Stop all sounds
 			this.stopAllSoundsPads();
 			this.stopAllSoundsExplorer();
 			// const currentPreset = PresetManager.getPreset(presetSelectMenu.value);
@@ -2568,7 +2575,6 @@ export default class SamplerHTMLElement extends HTMLElement {
 			//bind the midi learn into the corresponding pad
 			const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
 			if(currentState.midiLearn){
-			console.log(currentState.midiLearn);
 			const switchPadsWithMidiLearn = currentState.midiLearn.filter(element => element.cc.cc);
 			switchPads.forEach((switchpad) => {
 				switchpad.midiController = {};
@@ -2734,6 +2740,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 			})
 			promptElement.addEventListener('promptClosed', (e) => {
 				this.enableKeyboard = true;
+				this.shadowRoot.querySelector('#sampler').focus();
 			});
 			const response = await promptElement.showPrompt("Enter preset name!");
 
@@ -2789,13 +2796,13 @@ export default class SamplerHTMLElement extends HTMLElement {
 				presetName = prompt("Preset name :");
 
 				let stopExecution = false;
-				// Si le nom du preset est vide
+
 				if (presetName === "") {
 					alert("Error : preset name can't be empty");
 					stopExecution = true;
 					return;
 				}
-				// Si le nom du preset existe déjà
+				// if the preset name already exists, we ask the user if he wants to overwrite it
 				else if (PresetManager.getCurrentPreset(presetName)) {
 					// alert("Error : this preset name already exists");
 					if(!confirm("This preset name already exists. Do you want to overwrite it ?")){
@@ -2926,15 +2933,15 @@ export default class SamplerHTMLElement extends HTMLElement {
 		let presetName;
 		
 		if(this.promptAvailable) {
-			// Saisie du nom du preset
+			// Get the preset name
 			presetName = prompt("Preset name :");
 
-			// Si le nom du preset est vide
+			//if the preset name is empty, we stop the execution
 			if (presetName === "") {
 				alert("Error : preset name can't be empty");
 				return;
 			}
-			// Si le nom du preset existe déjà
+			// If the preset name already exists, we ask the user if he wants to overwrite it
 			else if (PresetManager.getCurrentPreset(presetName)) {
 				// alert("Error : this preset name already exists");
 				if(confirm("This preset name already exists. Do you want to overwrite it ?")){
@@ -2946,7 +2953,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 				else return;
 			}
 			else if (presetName === null) {
-				// Si l'utilisateur annule la saisie
+				// If the user cancels the input
 				return;
 			}
 			else {
@@ -2986,6 +2993,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		this.plugin.audioNode.gui = this;
 
 		const currentState = structuredClone(PresetManager.getCurrentPreset(presetName));
+		// console.log(currentState);
 
 		currentState.samples = PresetManager.newSamples(SamplerHTMLElement.URLs, SamplerHTMLElement.name, SamplerHTMLElement.defaultName, samplePlayers);
 		currentState.midiLearn = PresetManager.getMidiPresetsFromLocalStorage();
@@ -3026,7 +3034,6 @@ export default class SamplerHTMLElement extends HTMLElement {
 		this.player = this.samplePlayers[padIndex];
 		if (!this.player) return;
 
-		// Affiche le nom du son dans le div sans le <button>
 		this.shadowRoot.querySelector('#labelSampleName').innerHTML = padbutton.innerHTML.split('<')[0];
 
 		this.setKnobsEffects();
@@ -3036,22 +3043,18 @@ export default class SamplerHTMLElement extends HTMLElement {
 		this.player.stop();
 		this.player.play();
 
-		// On enleve la class .selected de tous les boutons
 		const buttons = this.shadowRoot.querySelectorAll('.switchpad');
 		buttons.forEach((button) => {
 			button.classList.remove('selected');
 		});
 
-		// On enleve la class .selected de tous les button de l'explorer
 		const buttonsExplorer = this.shadowRoot.querySelectorAll('.resultButton');
 		buttonsExplorer.forEach((button) => {
 			button.classList.remove('selected');
 		});
 
-		// On ajoute la class .selected au bouton cliqué
 		padbutton.classList.add('selected');
 
-		//on peut maitenant renommer le sample
 		this.setLabel(padIndex, padbutton);
 
 		
@@ -3089,7 +3092,7 @@ export default class SamplerHTMLElement extends HTMLElement {
 		});
 		this.shadowRoot.addEventListener('keydown',(e) => {
 			if(!this.enableKeyboard || !localEnableKeyboard) return;
-			//evite la répétition de l'évènement -> sample qui joue en boucle
+			//cancel the event if it's a repeat -> sample playing in loop
 			if (e.repeat) {
 				e.preventDefault();
 				return;
@@ -3149,7 +3152,6 @@ export default class SamplerHTMLElement extends HTMLElement {
 		this.shadowRoot.addEventListener('keyup',(e) => {
 			switch (e.code) {
 				case 'Digit1':
-					//this.shadowRoot.querySelector('#pad12').classList.remove('active');
 					this.noteOffKey(this.shadowRoot.querySelector('#switchpad12'));
 					break;
 				case 'Digit2':

@@ -282,7 +282,6 @@ export default class PresetManager {
     if(localStorage.presets) {
       const presets = JSON.parse(localStorage.getItem("presets"));
       const currentPreset = presets.find(preset => preset.name === presetName);
-      console.log(currentPreset);
       return currentPreset;
     }else {
       return this.presetsToSave.find((p) =>  p.name === presetName);
