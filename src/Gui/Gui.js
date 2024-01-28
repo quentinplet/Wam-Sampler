@@ -1,38 +1,37 @@
 // https://github.com/g200kg/webaudio-controls/blob/master/webaudio-controls.js
 window.WebAudioControlsOptions = {
-	useMidi:1,
-	preserveMidiLearn:1,
-  }
-import '../utils/webaudio-controls.js';
-import BufferLoader from './bufferLoader.js';
-import SamplePlayer from './SamplePlayer.js';
-import PresetManager from './presets.js';
-import NoteSet from './NoteSet.js';
-import './promptWC.js';
+  useMidi: 1,
+  preserveMidiLearn: 1,
+};
+import "../utils/webaudio-controls.js";
+import BufferLoader from "./bufferLoader.js";
+import SamplePlayer from "./SamplePlayer.js";
+import PresetManager from "./presets.js";
+import NoteSet from "./NoteSet.js";
+import "./promptWC.js";
 
 const getBaseURL = () => {
-	return new URL('.', import.meta.url);
+  return new URL(".", import.meta.url);
 };
 
 // change relative path to absolute path
 function changePathToAbsolute(pathArray) {
-	// turn these realtive paths into absolute paths
-	pathArray = pathArray.map((url) => {
-		if(url.startsWith('http')) {
-			//console.log("URL is already absolute, doing nothing url = " + url);
-			return url;
-		}
+  // turn these realtive paths into absolute paths
+  pathArray = pathArray.map((url) => {
+    if (url.startsWith("http")) {
+      //console.log("URL is already absolute, doing nothing url = " + url);
+      return url;
+    }
 
-		//console.log("Changin url = " + url + " to absolute path");
-		if(url ==='') return url;
-		
-		url = getBaseURL() + url;
-		//console.log(url);
-		return url;
-	});
-	return pathArray;
+    //console.log("Changin url = " + url + " to absolute path");
+    if (url === "") return url;
+
+    url = getBaseURL() + url;
+    //console.log(url);
+    return url;
+  });
+  return pathArray;
 }
-
 
 // This works when you use a bundler such as rollup
 // If you do no wan to use a bundler, then  look at other examples
@@ -989,2441 +988,2970 @@ let template = `
 `;
 
 export class MIDI {
-	static NOTE_ON = 0x90;
-	static NOTE_OFF = 0x80;
-	static CC = 0xB0;
+  static NOTE_ON = 0x90;
+  static NOTE_OFF = 0x80;
+  static CC = 0xb0;
 }
-
 
 // The GUI is a WebComponent. Not mandatory but useful.
 // MANDORY : the GUI should be a DOM node. WebComponents are
 // practical as they encapsulate everyhing in a shadow dom
 export default class SamplerHTMLElement extends HTMLElement {
-	// plugin = the same that is passed in the DSP part. It's the instance
-	// of the class that extends WebAudioModule. It's an Observable plugin
+  // plugin = the same that is passed in the DSP part. It's the instance
+  // of the class that extends WebAudioModule. It's an Observable plugin
 
-	static URLs = [];
-	static name = [];
-	static defaultName = [];
+  static URLs = [];
+  static name = [];
+  static defaultName = [];
 
-	constructor(plugin) {
-		super();
-		// SamplerHTMLElement.factoryPreset1URIs = changePathToAbsolute(SamplerHTMLElement.factoryPreset1URIs);
-		this.root = this.attachShadow({ mode: 'open' });
-		this.root.innerHTML = `<style>${style}</style>${template}`;
+  constructor(plugin) {
+    super();
+    // SamplerHTMLElement.factoryPreset1URIs = changePathToAbsolute(SamplerHTMLElement.factoryPreset1URIs);
+    this.root = this.attachShadow({ mode: "open" });
+    this.root.innerHTML = `<style>${style}</style>${template}`;
 
-		// MANDATORY for the GUI to observe the plugin state
-		this.plugin = plugin;
+    // MANDATORY for the GUI to observe the plugin state
+    this.plugin = plugin;
 
-		this.plugin.audioNode.gui = this;
+    this.plugin.audioNode.gui = this;
 
+    //set control bindings for midi
+    this.controlBindings = new Map();
 
-		//set control bindings for midi
-		this.controlBindings = new Map();
+    this.controlBindings.set("volume", 176);
+    this.controlBindings.set("pan", 177);
+    this.controlBindings.set("tone", 178);
+    this.controlBindings.set("pitch", 179);
 
-		this.controlBindings.set("volume", 176);
-		this.controlBindings.set("pan", 177);
-		this.controlBindings.set("tone", 178);
-		this.controlBindings.set("pitch", 179);
+    //ADSR
+    this.controlBindings.set("attack", 180);
+    this.controlBindings.set("decay", 181);
+    this.controlBindings.set("sustain", 182);
+    this.controlBindings.set("release", 183);
 
-		//ADSR
-		this.controlBindings.set("attack", 180);
-		this.controlBindings.set("decay", 181);
-		this.controlBindings.set("sustain", 182);
-		this.controlBindings.set("release", 183);
+    //i have the key i want to log the value of
 
+    // apiKey BUFFA :
+    //this.apiKey = 'gWrbi0mUOoh7gaZgxp1Eh5rXB1hZ4UKZ2AnV8nqo';
+    // apiKey BOUCLIER :
+    //this.apiKey = 'oDL2Gdd0IksB30fuYIPsb3FCAjkhgNb2Vyw2bENg';
 
-		//i have the key i want to log the value of
+    this.apiKey = "";
 
-		// apiKey BUFFA :
-		//this.apiKey = 'gWrbi0mUOoh7gaZgxp1Eh5rXB1hZ4UKZ2AnV8nqo';
-		// apiKey BOUCLIER :
-		//this.apiKey = 'oDL2Gdd0IksB30fuYIPsb3FCAjkhgNb2Vyw2bENg';
+    this.apiUrl = "https://freesound.org/apiv2";
 
-		this.apiKey = '';
+    // this.setupMidiListeners(this.plugin.audioNode);
 
-		this.apiUrl = 'https://freesound.org/apiv2';
+    this.samplePlayers = [];
 
-		// this.setupMidiListeners(this.plugin.audioNode);
+    this.explorerSamplePlayers = [];
 
-		this.samplePlayers = [];
+    this.mousePos = { x: 0, y: 0 };
 
-		this.explorerSamplePlayers = [];
+    this.enableVelocity = false;
 
-		this.mousePos = { x: 0, y: 0 };
+    //By default the keyboard touch for typing is enabled
+    this.enableKeyboard = true;
+    this.enableKeyboardPlay = false;
 
-		this.enableVelocity = false;
+    // If the prompt menu is no available
+    this.promptAvailable = false;
 
-		//By default the keyboard touch for typing is enabled
-		this.enableKeyboard = true;
-		this.enableKeyboardPlay = false;
-
-		// If the prompt menu is no available
-		this.promptAvailable = false;
-
-		/*
+    /*
 		console.log("getBaseURL : " + getBaseURL());
 		//this.backgroundImageURL = 	getBaseURL() + "./Gui/imgOrange.jpg";
 		this.backgroundImageURL = getBaseURL() + "./imgOrange.jpg"
 		console.log("this.backgroundImageURL : " + this.backgroundImageURL);
 		*/
-	}
-
-	handleAnimationFrame = () => {
-		if (this.player) {
-			this.player.drawOverlays();
-		}
-		window.requestAnimationFrame(this.handleAnimationFrame);
-	}
-
-	connectedCallback() {
-		this.setupMidiListeners(this.plugin.audioNode);
-		// get the canvas for the waveform
-		this.canvas = this.shadowRoot.querySelector('#myCanvas');
-		this.canvasOverlay = this.shadowRoot.querySelector('#myCanvasOverlay');
-		// get the canvas context
-		this.canvasContext = this.canvas.getContext('2d');
-		this.canvasContextOverlay = this.canvasOverlay.getContext('2d');
-
-		// add listeners on choiceButtons
-		this.setChoiceButtons();
-
-		// add listeners on knobs effects
-		this.setKnobs();
-
-		// add listeners on the freesound Explorer
-		this.setExplorer();
-
-		// add listeners on the input of ApiKey
-		this.setApiKey();
-
-		// add drag and drop for switchpads
-		this.setAllDragAndDrop();
-
-		// add listeners on the select presets
-		this.setPreset();
-
-		// add listeners on the canvas
-		this.addCanvasListeners();
-
-		// add listeners on the keyboard for playing pads
-		this.setKeyboardPress();
-
-		// Set background image style to #sampler html element
-		//this.setSamplerBackgroundImage();
-
-		// set relative urls to absolute for webaudiocontrol spritesheet images
-		this.setWebAudioControlSpritesheetImages();
-
-		//update Midi Note Value on GUI
-		this.updateMidiNoteValue();
-
-		this.setVelocity();
-	}
-
-	setWebAudioControlSpritesheetImages() {
-		let switches = this.shadowRoot.querySelectorAll('.switchpad');
-		switches.forEach((pad) => {
-			let imgUrl = pad.getAttribute("src");
-			// change pad.src to absolute
-			const absoluteURL = getBaseURL() + imgUrl;
-			//#region const imgBase64
-			const imgBase64 = 'data:image/png;base64,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';
-			//#endregion
-			pad.setAttribute("src", imgBase64);
-		});
-	}
-		
-	setSamplerBackgroundImage() {
-		let samplerDiv = this.shadowRoot.querySelector('#sampler');
-		samplerDiv.style.backgroundImage = "url(" + this.backgroundImageURL + ")";
-		//samplerDiv.style.background = "red";
-
-		console.log("samplerDiv.style.backgroundImage : " + samplerDiv.style.backgroundImage);
-	}
-
-	addCanvasListeners() {
-		this.canvasOverlay.onmousemove = (evt) => {
-			let rect = this.canvas.getBoundingClientRect();
-
-			this.mousePos.x = (evt.clientX - rect.left);
-			this.mousePos.y = (evt.clientY - rect.top);
-
-			if (this.player) {
-				this.player.highLightTrimBarsWhenClose(this.mousePos);
-			}
-		}
-
-		this.canvasOverlay.onmousedown = (evt) => {
-			if (this.player) {
-				this.player.selectTrimbars();
-			}
-		}
-
-		this.canvasOverlay.onmouseup = (evt) => {
-			if (this.player) {
-				this.player.releaseTrimBars();
-			}
-		}
-
-		this.canvasOverlay.onmouseout = (evt) => {
-			if (this.player) {
-				this.player.releaseTrimBarsOnMouseOut();
-			}
-		}
-	}
-
-	setKnobs() {
-		const effectKnobs = this.shadowRoot.querySelectorAll('.knob');
-		effectKnobs.forEach((effectKnob) => { effectKnob.classList.add('element-disabled')});
-		
-		this.shadowRoot.querySelector('#knob1').addEventListener('input', (e) => {
-			//this.plugin.audioNode.setParamsValues({ volumeGain: e.target.value });
-
-			if (this.player == undefined) return;
-
-			this.player.effects.volumeGain = parseFloat(e.target.value);
-
-		});
-
-		this.shadowRoot.querySelector('#knob2').addEventListener('input', (e) => {
-			//this.plugin.audioNode.setParamsValues({ pan: e.target.value });
-
-			if (this.player == undefined) return;
-
-			this.player.effects.pan = parseFloat(e.target.value);
-
-
-		});
-
-		
-
-		this.shadowRoot.querySelector('#knob3').addEventListener('input', (e) => {
-			//this.plugin.audioNode.setParamsValues({ tone: e.target.value });
-
-			if (this.player == undefined) return;
-
-			this.player.effects.tone = parseFloat(e.target.value);
-
-		});
-
-		this.shadowRoot.querySelector('#knobPitch').addEventListener('input', (e) => {
-			if (this.player == undefined) return;
-			this.player.semitones = parseInt(e.target.value);
-		})
-
-		//button reverse
-		const btnReverse = this.shadowRoot.querySelector('#reverse');
-		btnReverse.disabled = true;
-		btnReverse.classList.add('element-disabled');
-		btnReverse.addEventListener('click', (e) => {
-			if (this.player == undefined) return;
-
-			const reverseSoundBuffer = this.player.reverseSound(this.player.decodedSound);
-			this.player.reversed = !this.player.reversed;
-
-			this.player.decodedSound = reverseSoundBuffer;
-			this.player.drawWaveform();
-
-			this.player.reversed ? btnReverse.classList.add('choose') : btnReverse.classList.remove('choose');
-		});
-
-
-		//ADSR enveloppe
-
-		//enable ADSR;
-		const envBtn = this.shadowRoot.querySelector('#envBtn');
-		const envKnobs = this.shadowRoot.querySelectorAll('.knobEnv');
-		//disable all knobs
-		envKnobs.forEach((envKnob) => { envKnob.classList.add('element-disabled') });
-		envBtn.disabled = true;
-		envBtn.classList.add('element-disabled');
-		envBtn.addEventListener('click', (e) => {
-			if (this.player == undefined) return;
-			if (!this.player.enableAdsr) {
-				envBtn.innerHTML = "Disable";
-				this.player.enableAdsr = true;
-				envBtn.classList.add('choose');
-				envKnobs.forEach((envKnob) => { envKnob.classList.remove('element-disabled') });
-			}
-			else {
-				envBtn.innerHTML = "Enable";
-				this.player.enableAdsr = false;
-				envBtn.classList.remove('choose');
-				envKnobs.forEach((envKnob) => { envKnob.classList.add('element-disabled') });
-			}
-		});
-
-		//attack
-		this.shadowRoot.querySelector("#knobAttack").addEventListener('input', (e) => {
-			if (this.player == undefined) return;
-			this.player.effects.attackValue = parseFloat(e.target.value);
-		});
-
-		//decay
-		this.shadowRoot.querySelector("#knobDecay").addEventListener('input', (e) => {
-			if (this.player == undefined) return;
-			this.player.effects.decayValue = parseFloat(e.target.value);
-		});
-
-		//sustain
-		this.shadowRoot.querySelector("#knobSustain").addEventListener('input', (e) => {
-			if (this.player == undefined) return;
-			this.player.effects.sustainValue = parseFloat(e.target.value);
-		});
-
-		//release
-		this.shadowRoot.querySelector("#knobRelease").addEventListener('input', (e) => {
-			if (this.player == undefined) return;
-			this.player.effects.releaseValue = parseFloat(e.target.value);
-		});
-
-	}
-
-	//initialize knobs values
-	initKnobs() {
-		const effectKnobs = this.shadowRoot.querySelectorAll('.knob');
-		effectKnobs.forEach((effectKnob) => { effectKnob.classList.add('element-disabled')});
-
-		const btnReverse = this.shadowRoot.querySelector('#reverse');
-		btnReverse.disabled = true;
-		btnReverse.classList.remove('choose');
-
-		//ADSR;
-		const envBtn = this.shadowRoot.querySelector('#envBtn');
-		const envKnobs = this.shadowRoot.querySelectorAll('.knobEnv');
-		//disable all env knobs
-		envKnobs.forEach((envKnob) => { envKnob.classList.add('element-disabled') });
-		envBtn.disabled = true;
-		envBtn.classList.remove('choose');
-
-		this.shadowRoot.querySelector('#knob1').value = 0.5;
-		this.shadowRoot.querySelector('#knob2').value = 0;
-		this.shadowRoot.querySelector('#knob3').value = 0;
-		this.shadowRoot.querySelector('#knobPitch').value = 0;
-		this.shadowRoot.querySelector('#knobAttack').value = 0.2;
-		this.shadowRoot.querySelector('#knobDecay').value = 0.2;
-		this.shadowRoot.querySelector('#knobSustain').value = 1;
-		this.shadowRoot.querySelector('#knobRelease').value = 0.3;
-	}
-
-	setChoiceButtons() {
-		const knob = this.shadowRoot.querySelector('#choiceKnobs');
-		const explorer = this.shadowRoot.querySelector('#choiceExplorer');
-		const MIDI = this.shadowRoot.querySelector('#choiceMIDI');
-
-		const divKnob = this.shadowRoot.querySelector('#knobs');
-		const divExplorer = this.shadowRoot.querySelector('#explorer');
-		const divMIDI = this.shadowRoot.querySelector('#MIDI');
-
-		explorer.classList.add('choose');
-
-		divKnob.style.display = 'none';
-		divExplorer.style.display = 'inline-block';
-		divMIDI.style.display = 'none';
-
-
-		knob.addEventListener('click', (e) => {
-			divKnob.style.display = 'grid';
-			divExplorer.style.display = 'none';
-			divMIDI.style.display = 'none';
-
-			knob.classList.add('choose');
-			explorer.classList.remove('choose');
-			MIDI.classList.remove('choose');
-		});
-
-		explorer.addEventListener('click', (e) => {
-			divKnob.style.display = 'none';
-			divExplorer.style.display = 'inline-block';
-			divMIDI.style.display = 'none';
-
-			knob.classList.remove('choose');
-			explorer.classList.add('choose');
-			MIDI.classList.remove('choose');
-		});
-
-		MIDI.addEventListener('click', (e) => {
-			divKnob.style.display = 'none';
-			divExplorer.style.display = 'none';
-			divMIDI.style.display = 'flex';
-
-			knob.classList.remove('choose');
-			explorer.classList.remove('choose');
-			MIDI.classList.add('choose');
-		});
-	}
-
-	setApiKey() {
-		const apiKeyInput = this.shadowRoot.querySelector('#apiKey');
-		const save = this.shadowRoot.querySelector('#apiKeyButton');
-
-		// Get the API key from the localStorage
-		if (localStorage.getItem('apiKey') != null) {
-			this.apiKey = localStorage.getItem('apiKey');
-			apiKeyInput.value = this.apiKey;
-			save.classList.add('saved');
-		}
-
-		
-		apiKeyInput.addEventListener('focus', (e) => {
-			save.classList.remove('saved');
-			//disable keyboard events for playin pads
-			this.enableKeyboard = false;
-		});
-
-		//add listeners on keyboard for typing api key
-		apiKeyInput.addEventListener('blur', (e) => {
-			this.enableKeyboard = true;
-			this.shadowRoot.querySelector('#sampler').focus();
-		});
-
-		// click on save button when press enter
-		apiKeyInput.addEventListener('keyup', (e) => {
-			if (e.code === 'Enter') {
-				this.enableKeyboard = true;
-				save.click();
-				save.classList.add('saved');
-				apiKeyInput.blur();
-			}
-		});
-
-		save.addEventListener('click', (e) => {
-			this.apiKey = apiKeyInput.value;
-
-			// add the API key to the localStorage
-			localStorage.setItem('apiKey', this.apiKey);
-
-			save.classList.add('saved');
-		});
-	}
-
-	setLabel(index, b, defaultName) {
-		const label = this.shadowRoot.querySelector('#labelSampleName');
-		const input = this.shadowRoot.querySelector('#inputSampleName');
-		const buttonText = b.querySelector('.button_text');
-
-		if(buttonText){
-			label.textContent = buttonText.textContent;
-		}
-		else {
-			label.textContent = b.textContent;
-		}
-
-		label.style.cursor = 'pointer';
-		
-		
-		if (!b) {
-			label.ondblclick = () => {
-				return;
-			}
-		}
-		else {
-
-			if (b.classList.contains('selected') && ((b.classList.contains('resultButton')) || (b.nodeName === 'WEBAUDIO-SWITCH'))) {
-
-				label.ondblclick = () => {
-					if(!b.classList.contains('selected')) return;
-					label.style.display = 'none';
-					input.value = label.textContent;
-					input.style.display = 'inline-block';
-					input.style.outline = "none";
-					input.focus();
-				}
-
-				input.onblur = () => {
-					label.textContent = input.value;
-					if(b.classList.contains('resultButton')){
-						if(label.textContent == "") label.textContent = defaultName;
-						b.textContent = label.textContent;
-					} else if(b.nodeName === 'WEBAUDIO-SWITCH'){
-						if (label.textContent == "") {
-							label.textContent = SamplerHTMLElement.defaultName[index];
-						}
-						SamplerHTMLElement.name[index] = label.textContent;
-						const currentButtonText = b.querySelector('.button_text');
-						currentButtonText.innerHTML = SamplerHTMLElement.name[index];
-					}
-					label.style.display = "inline-block";
-					input.style.display = "none";
-					this.enableKeyboard = true;
-					//focus on the sampler element for event keyboard
-					this.shadowRoot.querySelector('#sampler').focus();
-				}
-
-				input.addEventListener('focus', (e) => {
-					this.enableKeyboard = false;
-					// if we press enter, we save the name
-					input.addEventListener('keyup', (e) => {
-						if (e.code === 'Enter') {
-							this.enableKeyboard = true;
-							input.blur();
-						}
-					});
-				});
-			}
-		}
-
-	}
-
-
-	setExplorer() {
-		const search = this.shadowRoot.querySelector('#search');
-		const searchButton = this.shadowRoot.querySelector('#searchButton');
-		const time = this.shadowRoot.querySelector('#timeRange');
-		const results = this.shadowRoot.querySelector('#results');
-		const next = this.shadowRoot.querySelector('#nextPage');
-		const previous = this.shadowRoot.querySelector('#previousPage');
-
-		next.disabled = true;
-		previous.disabled = true;
-
-		// disable keyboard events for playin pads
-		search.addEventListener('focus', (e) => {
-			this.enableKeyboard = false;
-		});
-
-		// add listeners on keyboard for typing 
-		search.addEventListener('blur', (e) => {
-			this.enableKeyboard = true;
-			this.shadowRoot.querySelector('#sampler').focus();
-		});
-
-		let option = "";
-		let numPage = 1;
-
-		time.innerHTML = 5;
-		time.value = 5;
-
-		// add time options from 1 to 5 seconds
-		for (let i = 1; i <= 5; i++) {
-			option = document.createElement('option');
-			option.value = i;
-			option.innerHTML = '< ' + i + 's';
-			time.appendChild(option);
-		}
-
-		// add time options from 10 to 20 seconds
-		for (let i = 10; i <= 20; i += 5) {
-			option = document.createElement('option');
-			option.value = i;
-			option.innerHTML = '< ' + i + 's';
-			time.appendChild(option);
-		}
-
-		// add time option for unlimited duration
-		option = document.createElement('option');
-		option.value = 'unlimited';
-		option.innerHTML = 'all';
-		time.appendChild(option);
-
-		// add listeners on next and previous buttons
-		next.addEventListener('click', (e) => {
-			numPage++;
-			searchButton.click();
-		});
-
-		previous.addEventListener('click', (e) => {
-			if (numPage > 1) {
-				numPage--;
-				searchButton.click();
-			}
-		});
-
-		// click on search button when press enter
-		search.addEventListener('keyup', (e) => {
-			if (e.code === 'Enter') {
-				this.enableKeyboard = true;
-				searchButton.click();
-				search.blur();
-			}
-		});
-
-
-
-		searchButton.addEventListener('click', (e) => {
-
-			next.disabled = true;
-			previous.disabled = true;
-
-			searchButton.disabled = true;
-			searchButton.classList.remove('error');
-			searchButton.innerHTML = 'Searching...';
-
-			results.classList.remove('error');
-			results.innerHTML = '';
-
-			this.stopAllSoundsExplorer();
-			this.explorerSamplePlayers = [];
-			let arrayOfSoundObjectURLs = [];
-
-			this.getSounds(search.value, numPage).then((arrayOfSoundIds) => {
-
-				arrayOfSoundIds.map((soundObject, index) => {
-					const id = soundObject[0];
-					const name = soundObject[1];
-					const urlOfSoundObject = `${this.apiUrl}/sounds/${id}/?token=${this.apiKey}`;
-
-					arrayOfSoundObjectURLs.push(urlOfSoundObject);
-				});
-
-				// use Promise.all to get all the sound objects
-				Promise.all(arrayOfSoundObjectURLs.map(url => fetch(url)))
-					.then(responses => Promise.all(responses.map(res => res.json())))
-					.then(soundObjects => {
-						// use Promise.all to get all the sound previews as mp3 files
-						const arrayOfSoundPreviews = soundObjects.map(soundObject => soundObject.previews['preview-hq-mp3']);
-
-						arrayOfSoundPreviews.forEach((soundPreview, index) => {
-							this.setResultSound(index, arrayOfSoundIds[index][1], arrayOfSoundPreviews[index]);
-						});
-
-						let bl = new BufferLoader(this.plugin.audioContext, arrayOfSoundPreviews, this.shadowRoot, (bufferList) => {
-							// when all sounds are loaded, we store them in an array
-							this.decodedSounds = bufferList;
-							this.explorerDecodedSounds = bufferList;
-
-							// For each sounds we create a SamplePlayer
-							this.decodedSounds.forEach((decodedSound, index) => {
-
-								this.explorerSamplePlayers[index] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", decodedSound, this.plugin.audioNode, 0);
-
-								const b = this.shadowRoot.querySelector('#result' + index);
-
-								// add the class 'set' to the button
-								b.classList.add('set');
-								// add draggable attribute to the button for drag and drop events
-								b.setAttribute('draggable', 'true');
-
-								window.requestAnimationFrame(this.handleAnimationFrame);
-							});
-						});
-
-						bl.loadExplorer();
-
-						if (!searchButton.classList.contains('error')) {
-							searchButton.textContent = 'Search';
-						}
-						else {
-							searchButton.textContent = 'Error';
-						}
-						next.disabled = false;
-						if (numPage > 1) {
-							previous.disabled = false;
-						}
-						searchButton.disabled = false;
-					});
-			});
-		});
-	}
-
-
-
-
-	getSounds(queryText, nbPage) {
-
-		let time = this.shadowRoot.querySelector('#timeRange').value;
-		const searchButton = this.shadowRoot.querySelector('#searchButton');
-		const results = this.shadowRoot.querySelector('#results');
-
-		let url = '';
-
-		if (time === 'unlimited') {
-			url = `${this.apiUrl}/search/text/?query=${queryText}&token=${this.apiKey}&page_size=9&page=${nbPage}`;
-		}
-		else {
-			url = `${this.apiUrl}/search/text/?query=${queryText}&token=${this.apiKey}&page_size=9&page=${nbPage}&filter=duration:[0.0 TO ${time}.0]`;
-		}
-
-		const xhr = new XMLHttpRequest();
-		xhr.open('GET', url);
-		xhr.responseType = 'json';
-
-		return new Promise((resolve, reject) => {
-			xhr.onreadystatechange = () => {
-				if (xhr.readyState === 4) {
-					if (xhr.status === 200) {
-						const arrayOfSoundIdsAndNames = xhr.response.results.map(sound => [sound.id, sound.name]);
-						resolve(arrayOfSoundIdsAndNames);
-					}
-					else if (xhr.status === 401) {
-						if (!searchButton.classList.contains('error')) {
-							searchButton.classList.add('error');
-							searchButton.textContent = 'Error';
-						}
-						searchButton.disabled = false;
-
-						results.classList.add('error');
-						results.innerHTML = 'Unauthorized : ' + xhr.response.detail + '<br><br>Please check your API key.';
-						reject(new Error('Unauthorized : ' + xhr.response.detail));
-					}
-					else if (xhr.status === 404) {
-						if (!searchButton.classList.contains('error')) {
-							searchButton.classList.add('error');
-							searchButton.textContent = 'Error';
-						}
-						searchButton.disabled = false;
-
-						results.classList.add('error');
-						results.innerHTML = 'Sounds not found : ' + xhr.response.detail;
-						reject(new Error('Sounds not found : ' + xhr.response.detail));
-					}
-					else if (xhr.status === 429) {
-						if (!searchButton.classList.contains('error')) {
-							searchButton.classList.add('error');
-							searchButton.textContent = 'Error';
-						}
-						searchButton.disabled = false;
-
-						results.classList.add('error');
-						results.innerHTML = 'Too many requests : ' + xhr.response.detail;
-						reject(new Error('Too many requests : ' + xhr.response.detail));
-					}
-					else {
-						if (!searchButton.classList.contains('error')) {
-							searchButton.classList.add('error');
-							searchButton.textContent = 'Error';
-						}
-						searchButton.disabled = false;
-
-						results.classList.add('error');
-						results.innerHTML = 'Failed to get sounds : ' + xhr.response.detail;
-						reject(new Error('Failed to get sounds : ' + xhr.response.detail));
-					}
-				}
-			};
-			xhr.send();
-		});
-	}
-
-	setAllDragAndDrop() {
-
-		this.shadowRoot.querySelectorAll('.switchpad').forEach((b) => {
-			//b.setAttribute('draggable', true);
-
-			b.addEventListener('dragstart', (e) => {
-				e.stopPropagation();
-				e.dataTransfer.setData('id', e.target.id);
-			});
-
-			b.addEventListener('dragover', (e) => {
-				e.stopPropagation();
-				e.preventDefault();
-			});
-
-			b.addEventListener('dragmove', (e) => {
-				e.preventDefault();
-			});
-
-			b.addEventListener('drop', (e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				let btnTargetId;
-				
-				btnTargetId = e.target.id;
-				
-				const dropIndex = btnTargetId;
-				const dragIndex = e.dataTransfer.getData('id');
-				const dropUrl = e.dataTransfer.getData('url');
-
-				if (dragIndex.startsWith('switchpad')) {
-					if (dragIndex != dropIndex) {
-						this.swapSample(dragIndex, dropIndex);
-					}
-				}
-				else if (dragIndex.startsWith('result')) {
-					this.addSampleToPad(dragIndex, dropIndex, dropUrl);
-				}
-			});
-
-			b.addEventListener('dragend', (e) => {
-				let target = e.target;
-				if(!e.target.classList.contains('switchpad'))
-					target = e.target.parentNode;
-				target.setValue(0, true);
-				e.preventDefault();
-			});
-		});
-
-		
-	}
-
-	swapSample = (index1, index2) => {
-		// we get the index number
-		const numberRegex = /\d+/g;
-		if(typeof index1 === "string" && typeof index2 === "string") {
-			index1 = index1.match(numberRegex)[0];
-			index2 = index2.match(numberRegex)[0];
-		}
-
-		if (index1 === index2) return;
-
-		const div1 = this.shadowRoot.querySelector('#p' + index1);
-		const div2 = this.shadowRoot.querySelector('#p' + index2);
-
-		// remove the button delete if it exists
-		if (div1.querySelector('.deleteSample')) {
-			div1.querySelector('.deleteSample').remove();
-		}
-
-		if (div2.querySelector('.deleteSample')) {
-			div2.querySelector('.deleteSample').remove();
-		}
-
-		// set the correct id
-		div1.querySelector('.switchpad').id = 'switchpad' + index1;
-		div2.querySelector('.switchpad').id = 'switchpad' + index2;
-
-		const button1 = this.shadowRoot.querySelector('#switchpad' + index1);
-		const button2 = this.shadowRoot.querySelector('#switchpad' + index2);
-
-		if(!button1.classList.contains('selected')) return;
-
-
-		//swap progress bar
-		const progressPad1 = div1.querySelector('#progress' + index1);
-		const progressPad2 = div2.querySelector('#progress' + index2);
-		const clonedProgress1 = progressPad1.cloneNode(true);
-		const clonedProgress2 = progressPad2.cloneNode(true);
-		div1.replaceChild(clonedProgress2, progressPad1);
-		div2.replaceChild(clonedProgress1, progressPad2);
-		div1.querySelector('.padprogress').id = 'progress' + index1;
-		div2.querySelector('.padprogress').id = 'progress' + index2;
-		
-		if(SamplerHTMLElement.URLs[index2] === undefined){ 
-			SamplerHTMLElement.URLs[index2] = '';
-		}
-		if(SamplerHTMLElement.URLs[index1] === undefined){
-			SamplerHTMLElement.URLs[index1] = '';
-		}
-
-		if(SamplerHTMLElement.name[index2] === undefined){ 
-			SamplerHTMLElement.name[index2] = '';
-		}
-		if(SamplerHTMLElement.name[index1] === undefined){
-			SamplerHTMLElement.name[index1] = '';
-		}
-
-		//Swap urls
-		const tempURL = SamplerHTMLElement.URLs[index1];
-		SamplerHTMLElement.URLs[index1] = SamplerHTMLElement.URLs[index2];
-		SamplerHTMLElement.URLs[index2] = tempURL;
-
-		//Swap names
-		const tempName = SamplerHTMLElement.name[index1];
-		SamplerHTMLElement.name[index1] = SamplerHTMLElement.name[index2]
-		SamplerHTMLElement.name[index2] = tempName;
-
-		//Swap default names
-		const tempDefaultName = SamplerHTMLElement.defaultName[index1];
-		SamplerHTMLElement.defaultName[index1] = SamplerHTMLElement.defaultName[index2];
-		SamplerHTMLElement.defaultName[index2] = tempDefaultName;
-
-		// Swap SamplePlayers
-		const tempPlayer = this.samplePlayers[index1];
-		this.samplePlayers[index1] = this.samplePlayers[index2];
-		this.samplePlayers[index2] = tempPlayer;
-
-		if (!button1.querySelector(".button_text")) {
-			const buttonText = document.createElement("p");
-			buttonText.classList.add("button_text");
-			buttonText.id = "button_text" + index1;
-			button1.innerHTML = "";
-			button1.appendChild(buttonText);
-    	}
-
-		if (!button2.querySelector(".button_text")) {
-			const buttonText = document.createElement("p");
-			buttonText.classList.add("button_text");
-			buttonText.id = "button_text" + index2;
-			button2.innerHTML = "";
-			button2.appendChild(buttonText);
-    	}
-
-		if (!button1.classList.contains('set')){
-			this.setSwitchPad(index1);
-			button1.classList.remove('selected');
-		}
-
-		if(!button2.classList.contains('set')) {
-			this.setSwitchPad(index2);
-			this.setLabel(index2,button2);
-			button2.classList.add('selected');
-		}
-
-
-		this.setDefaultPadKeyValue(index1);
-		this.setDefaultPadKeyValue(index2);
-		
-	}
-
-	addSampleToPad = (index1, index2, url) => {
-
-		this.stopAllSoundsExplorer();
-
-		//get the index number
-		const numberRegex = /\d+/g;
-		index1 = index1.match(numberRegex)[0];
-		index2 = index2.match(numberRegex)[0];
-
-		const div1 = this.shadowRoot.querySelector('#resultExplorer' + index1);
-		const div2 = this.shadowRoot.querySelector('#p' + index2);
-
-		const padElement = div2.children[0].tagName;
-
-		if (div2.querySelector('.deleteSample')) {
-			div2.querySelector('.deleteSample').remove();
-		}
-
-		const button = div1.querySelector('.resultButton');
-
-		//clone progress bar
-		const progressExplorer = div1.querySelector('.progressExplorer');
-		const progressPad = div2.querySelector('.padprogress');
-		const newProgressPad = progressExplorer.cloneNode(true);
-		div2.replaceChild(newProgressPad, progressPad);
-		newProgressPad.classList.replace('progressExplorer', 'padprogress');
-		newProgressPad.id = 'progress' + index2;
-
-		// get the url of the sound back
-		SamplerHTMLElement.URLs[index2] = url;
-
-		// get the name of the sound back
-		SamplerHTMLElement.name[index2] = button.innerHTML;
-		SamplerHTMLElement.defaultName[index2] = button.innerHTML;
-
-		//recreate a new SamplePlayer independant of the explorer
-		this.samplePlayers[index2] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", this.explorerDecodedSounds[index1], this.plugin.audioNode, 0);
-		
-		// set pads
-		if (padElement === 'WEBAUDIO-SWITCH'){
-			this.setSwitchPad(index2);
-			const padBtn = this.shadowRoot.querySelector('#switchpad' + index2);
-			this.setLabel(index2, padBtn);
-
-			//Remove selected class from all switchpad
-			const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-			switchPads.forEach((switchPad) => {
-				switchPad.classList.remove('selected');
-			});
-
-			padBtn.classList.add('selected');
-		}
-
-		// update player
-		this.player = this.samplePlayers[index2];
-		this.shadowRoot.querySelector('#labelSampleName').innerHTML = button.innerHTML;
-		this.player.drawWaveform();
-
-		//set default keyboard value for playing pads
-		this.setDefaultPadKeyValue(index2);
-	}
-
-
-	stopAllSoundsPads = () => {
-		for (let i = 0; i < this.samplePlayers.length; i++) {
-			if (this.samplePlayers[i] != null) {
-				this.samplePlayers[i].stop();
-				if(this.samplePlayers[i].classList && this.samplePlayers[i].classList.contains('selected')) this.samplePlayers[i].classList.remove('selected');
-			}
-		}
-	}
-
-	stopAllSoundsExplorer = () => {
-		for (let i = 0; i < this.explorerSamplePlayers.length; i++) {
-			if (this.explorerSamplePlayers[i] != null) {
-				this.explorerSamplePlayers[i].stop();
-				// this.exporterSamplePLayers[i].classList.remove('selected');
-			}
-		}
-	}
-
-
-	setResultSound = (index, name, url) => {
-		// add a div resultExplorer for each sound
-		const div = document.createElement('div');
-		div.classList.add('resultExplorer');
-		div.id = 'resultExplorer' + index;
-		this.shadowRoot.querySelector('#results').appendChild(div);
-
-		// add a button for each sound
-		const b = document.createElement('button');
-		b.classList.add('resultButton');
-		b.id = 'result' + index;
-		let defaultName = name;
-		b.innerHTML = name;
-		b.addEventListener('click', (e) => {
-			// if the sound is loaded
-			if (this.explorerSamplePlayers[index] != null) {
-				this.stopAllSoundsPads();
-				this.stopAllSoundsExplorer();
-
-				this.player = this.explorerSamplePlayers[index];
-				this.shadowRoot.querySelector('#labelSampleName').innerHTML = b.innerHTML.split('<')[0];
-				this.player.drawWaveform();
-				this.player.play();
-				b.classList.add('active');
-				setTimeout(() => {
-					b.classList.remove('active');
-				}, 100);
-
-				// remove the class 'selected' from all the buttons
-				const buttons = this.shadowRoot.querySelectorAll('.padbutton');
-				buttons.forEach((button) => {
-					button.classList.remove('selected');
-				});
-
-				//Remove selected class from all switchpad
-				const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-				switchPads.forEach((switchPad) => {
-					switchPad.classList.remove('selected');
-				});
-
-				// remove the class 'selected' from all the buttons of the explorer
-				const buttonsExplorer = this.shadowRoot.querySelectorAll('.resultButton');
-				buttonsExplorer.forEach((button) => {
-					button.classList.remove('selected');
-				});
-
-				//Disable create NoteSet
-				this.shadowRoot.querySelector('#createNoteSet').disabled = true;
-				this.shadowRoot.querySelector('#createNoteSet').classList.add('element-disabled');
-
-				// add the class 'selected' to the button
-				b.classList.add('selected');
-
-				this.setLabel(index, b, defaultName);
-			}
-		});
-
-		b.addEventListener('dragstart', (e) => {
-			e.dataTransfer.setData('id', e.target.id);
-			e.dataTransfer.setData('url', url);
-		});
-
-		b.addEventListener('dragover', (e) => {
-			e.preventDefault();
-		});
-
-		b.addEventListener('dragend', (e) => {
-			e.preventDefault();
-		});
-
-		// add the button to the div
-		this.shadowRoot.querySelector('#resultExplorer' + index).appendChild(b);
-
-		// add a progress bar for each sound
-		const progressExplorer = document.createElement('progress');
-		progressExplorer.classList.add('progressExplorer');
-		progressExplorer.id = 'progressExplorer' + index;
-		progressExplorer.value = 0;
-		progressExplorer.max = 1;
-		this.shadowRoot.querySelector('#resultExplorer' + index).appendChild(progressExplorer);
-	}
-
-	setDefaultPadsKeyValue(){
-		const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-		for (let i = 0; i < switchPads.length; i++) {
-			const switchPad = this.shadowRoot.querySelector('#switchpad' + i)
-			if(switchPad.querySelector('.button_key_text')) return;
-			const buttonKeyValue = document.createElement('div');
-			buttonKeyValue.classList.add('button_key_text');
-			buttonKeyValue.id = 'button_key_text' + i;
-			const keyArr = ['W/Z','X','C','V','Q/A','S','D','F','A/Q','Z/W','E','R','1','2','3','4'];
-			buttonKeyValue.innerHTML = keyArr[i];
-			switchPad.appendChild(buttonKeyValue);
-		}
-	}
-
-	setDefaultPadKeyValue(index){
-		const switchPad = this.shadowRoot.querySelector('#switchpad' + index)
-		const buttonKeyValue = document.createElement('div');
-		if(switchPad.querySelector('.button_key_text')) return;
-		buttonKeyValue.classList.add('button_key_text');
-		buttonKeyValue.id = 'button_key_text' + index;
-		const keyArr = ['W/Z','X','C','V','Q/A','S','D','F','A/Q','Z/W','E','R','1','2','3','4'];
-		buttonKeyValue.innerHTML = keyArr[index];
-		switchPad.appendChild(buttonKeyValue);
-	}
-
-	setMidiNoteName(index, noteValue, noteName){
-		if(!noteValue) return;
-		const switchPad = this.shadowRoot.querySelector('#switchpad' + index);
-		const PadMidiNoteValue = document.createElement('div');
-		PadMidiNoteValue.classList.add('button_midi_note');
-		PadMidiNoteValue.id = 'button_midi_note' + index;
-
-		//convert midi note value to midi note name
-		const midiNotes = ['A0','A#0','B0','C1','C#1','D1','D#1','E1','F1','F#1','G1','G#1',
-							'A1','A#1','B1','C2','C#2','D2','D#2','E2','F2','F#2','G2','G#2',
-							'A2','A#2','B2','C3','C#3','D3','D#3','E3','F3','F#3','G3','G#3',
-							'A3','A#3','B3','C4','C#4','D4','D#4','E4','F4','F#4','G4','G#4',
-							'A4','A#4','B4','C5','C#5','D5','D#5','E5','F5','F#5','G5','G#5',
-							'A5','A#5','B5','C6','C#6','D6','D#6','E6','F6','F#6','G6','G#6',
-							'A6','A#6','B6','C7','C#7','D7','D#7','E7','F7','F#7','G7','G#7',
-							'A7','A#7','B7','C8','C#8','D8','D#8','E8','F8','F#8','G8','G#8',
-							'A8','A#8','B8','C9','C#9','D9','D#9','E9','F9','F#9','G9','G#9',];
-		//A0 = 21
-		let newNoteValue = noteValue - 21;
-		if(!noteName) {
-			noteName = midiNotes[newNoteValue];
-		}
-		PadMidiNoteValue.innerHTML = noteName;
-		if(!switchPad.querySelector('.button_midi_note')){
-			switchPad.appendChild(PadMidiNoteValue);
-		}else{
-			switchPad.replaceChild(PadMidiNoteValue, switchPad.querySelector('.button_midi_note'));
-		}
-	}
-
-	setNoteValue(index, noteName) {
-		const switchPad = this.shadowRoot.querySelector('#switchpad' + index);
-		//convert midi note name to midi note value
-		const midiNotes = ['A0','A#0','B0','C1','C#1','D1','D#1','E1','F1','F#1','G1','G#1',
-							'A1','A#1','B1','C2','C#2','D2','D#2','E2','F2','F#2','G2','G#2',
-							'A2','A#2','B2','C3','C#3','D3','D#3','E3','F3','F#3','G3','G#3',
-							'A3','A#3','B3','C4','C#4','D4','D#4','E4','F4','F#4','G4','G#4',
-							'A4','A#4','B4','C5','C#5','D5','D#5','E5','F5','F#5','G5','G#5',
-							'A5','A#5','B5','C6','C#6','D6','D#6','E6','F6','F#6','G6','G#6',
-							'A6','A#6','B6','C7','C#7','D7','D#7','E7','F7','F#7','G7','G#7',
-							'A7','A#7','B7','C8','C#8','D8','D#8','E8','F8','F#8','G8','G#8',
-							'A8','A#8','B8','C9','C#9','D9','D#9','E9','F9','F#9','G9','G#9',];
-		const noteValue = midiNotes.indexOf(noteName) + 21;
-
-		this.setMidiNoteName(index, noteValue, noteName);
-
-		switchPad.midiController.cc = noteValue;
-		switchPad.midiController.channel = 0;
-	}
-
-	updateMidiNoteValue(noteValue){
-		const preset = this.shadowRoot.querySelector('#selectPreset').value;
-		let menu=document.getElementById("webaudioctrl-context-menu");
-		let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
-		let listMidiLearn = JSON.parse(stockMidiLearn);
-		
-		//if pad is learning....
-		if(menu.knob && menu.knob.checked) {
-			//if another pad has already this midi note value, remove the previous midi learn
-			if(listMidiLearn.find(element => element.cc.cc === noteValue)) {
-				let filterList = listMidiLearn.filter(element => element.cc.cc === noteValue);
-				let filterListPresets;
-				//if there is more than one pad with this midi note value or if the pad is already assigned to this midi note value, remove the previous midi learn
-				if(filterList.length > 1) {
-					filterList = filterList.filter(element => element.id != menu.knob.id);
-					filterList.map(element => {element.cc = {}});
-					const switchPadsId = filterList.map(element => element.id);
-					const switchPads = switchPadsId.map(element => this.shadowRoot.querySelector('#' + element));
-					switchPads.forEach((switchPad) => {
-						switchPad.midiController = {};
-						if(switchPad.querySelector('.button_midi_note')){
-							switchPad.querySelector('.button_midi_note').remove();
-						}
-						switchPad.setValue(0);
-					});
-				}
-				localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(listMidiLearn));
-			}
-		}	
-		menu.onclick = (e) => {
-			const switchPad = menu.knob.id;
-			const switchPadNote = menu.knob.midiController.cc;
-			//get current Preset
-			const preset = this.shadowRoot.querySelector('#selectPreset').value;
-			
-			let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
-			let listMidiLearn = JSON.parse(stockMidiLearn);
-
-			if(!listMidiLearn) return;
-			
-			if (!switchPadNote) {
-				if(menu.knob.querySelector('.button_midi_note')){
-					menu.knob.querySelector('.button_midi_note').remove();
-				}
-			}
-		};
-		
-		this.clearAllMidiLearning();
-		this.resetAllMidiLearning();
-		const defaultMidiLearnBtn = this.shadowRoot.querySelector('#defaultMidiLearn');
-		defaultMidiLearnBtn.onclick = () => {
-			let manualClick = true;
-			this.defaultMidiMapping(manualClick);
-		}
-	}
-
-	clearAllMidiLearning() {
-		const clearBtn = this.shadowRoot.querySelector('#clearMidiLearn');
-		clearBtn.onclick = () => {
-			const switchpads = this.shadowRoot.querySelectorAll('.switchpad');
-			switchpads.forEach((switchpad) => {
-				switchpad.midiController = {};
-				if(switchpad.querySelector('.button_midi_note')){
-					switchpad.querySelector('.button_midi_note').remove();
-				}
-			});
-			let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
-			let listMidiLearn = JSON.parse(stockMidiLearn);
-			listMidiLearn.map(element => {element.cc = {}});
-			localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(listMidiLearn));
-		};
-	}
-
-	resetAllMidiLearning(){
-		//if there is a preset saved with midi learns, reset all midi learns to the swtichpads
-		const resetBtn = this.shadowRoot.querySelector('#resetMidiLearn');
-		resetBtn.onclick = () => {
-			const currentPreset = this.shadowRoot.querySelector('#selectPreset').value;
-			const switchpads = this.shadowRoot.querySelectorAll('.switchpad')
-			if(localStorage.presets && PresetManager.getMidiLearnListFromCurrentPreset(currentPreset)){
-				PresetManager.loadMidiControllerFromCurrentPreset(currentPreset, switchpads);
-
-				switchpads.forEach((switchpad) => {
-					const index = switchpad.id.match(/\d+/g)[0];
-					// if(!switchpad.querySelector('.button_midi_note')){
-						const currentMidiLearn = PresetManager.getMidiLearnFromCurrentPreset(currentPreset, switchpad.id);
-						if(currentMidiLearn.cc.cc === undefined) {
-							if(switchpad.querySelector('.button_midi_note')){
-								switchpad.querySelector('.button_midi_note').remove();
-							}
-						}
-						this.setMidiNoteName(index, currentMidiLearn.cc.cc);
-					}
-				)
-			} else {
-				this.defaultMidiMapping();
-			}
-		};
-	}
-
-	defaultMidiMapping(manualClick) {
-		const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-		// !!! Set here the default root midi note for the first switchpad !!!
-		const defaultRootMidiNote = 60; // 60 is C4
-		let midiLearnList = [];
-		const preset = this.shadowRoot.querySelector('#selectPreset').value;
-		PresetManager.setDefaultMidiMapping(preset, switchPads, defaultRootMidiNote);
-		if(localStorage.presets && !manualClick) {
-			if(PresetManager.getMidiLearnListFromCurrentPreset(preset)) {
-				const midiList = PresetManager.getMidiLearnListFromCurrentPreset(preset);
-				midiList.forEach((midi) => {
-					if(midi.id.includes('switchpad')) {
-						this.setMidiNoteName(midi.id.match(/\d+/g)[0], midi.cc.cc);
-					}
-				});
-			} else {
-				switchPads.forEach((switchPad) => {
-					// switchPad.midiController = {};
-					const index = switchPad.id.match(/\d+/g)[0];
-					this.setMidiNoteName(index, defaultRootMidiNote + parseInt(index));
-					midiLearnList.push({id: switchPad.id, cc: {cc: defaultRootMidiNote + parseInt(index), channel: 0}});
-					if(switchPad.midiController) {
-						switchPad.midiController.channel = 0;
-						switchPad.midiController.cc = defaultRootMidiNote + parseInt(index);
-					}
-				});
-			}
-		}
-		else if(localStorage.WebAudioControlsMidiLearn){
-			midiLearnList = JSON.parse(localStorage.WebAudioControlsMidiLearn);
-			switchPads.forEach((switchPad) => {
-				const index = switchPad.id.match(/\d+/g)[0];
-				this.setMidiNoteName(index, defaultRootMidiNote + parseInt(index));
-				const currentMidiLearn = midiLearnList.find(element => element.id == switchPad.id);
-				currentMidiLearn.cc.channel = 0;
-				currentMidiLearn.cc.cc = defaultRootMidiNote + parseInt(index);
-				if(switchPad.midiController) {
-					switchPad.midiController.cc = currentMidiLearn.cc.cc;
-					switchPad.midiController.channel = currentMidiLearn.cc.channel;
-				}
-			});
-		} else {
-			switchPads.forEach((switchPad) => {
-				const index = switchPad.id.match(/\d+/g)[0];
-				this.setMidiNoteName(index, defaultRootMidiNote + parseInt(index));
-				midiLearnList.push({id: switchPad.id, cc: {cc: defaultRootMidiNote + parseInt(index), channel: 0}});
-				if(switchPad.midiController) {
-					switchPad.midiController.cc = defaultRootMidiNote + parseInt(index);
-					switchPad.midiController.channel = 0;
-				}
-			});
-		}
-		if(midiLearnList.length > 0) {
-			localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(midiLearnList));
-		}
-	}
-
-	setSwitchPad(index) {
-		const switchPad = this.shadowRoot.querySelector('#switchpad' + index);
-		const preset = this.shadowRoot.querySelector('#selectPreset').value;
-
-		const buttonText = document.createElement('p');
-		
-		if (SamplerHTMLElement.URLs[index].includes('http') && SamplerHTMLElement.name[index]) {
-			buttonText.innerHTML = SamplerHTMLElement.name[index];
-		}
-	
-		//add p text element
-		buttonText.classList.add('button_text');
-		buttonText.id = 'button_text' + index;
-		//buttonText.innerHTML = switchPad.textContent;
-		switchPad.innerHTML = '';
-		switchPad.appendChild(buttonText);
-
-		// Add a button to delete the sample in the top right corner
-		if(buttonText && buttonText.innerHTML !== "") {
-			const deleteSample = document.createElement('button');
-			deleteSample.classList.add('deleteSample');
-			deleteSample.id = 'deleteSample' + index;
-			deleteSample.innerHTML = 'X';
-			deleteSample.onmousedown = (e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				if(e.button == 2) {
-					e.preventDefault();
-					return;
-				}
-				this.deleteSample(index);
-			}
-			switchPad.appendChild(deleteSample);
-		}
-		
-
-		//play sample
-		switchPad.onmousedown = (e) => {
-
-			//disable right click
-			if(e.button == 2){
-				e.preventDefault();
-				return;
-			 };
-	
-			if (this.player != this.samplePlayers[index]) {
-				this.player = this.samplePlayers[index];
-			}
-
-			if(!this.player) {
-				return;
-			}
-
-			this.setKnobsEffects();
-
-			// Display the name of the sample above the waveform
-			this.shadowRoot.querySelector('#labelSampleName').innerHTML = switchPad.innerHTML.split('<')[0];
-			this.player.drawWaveform();
-
-
-			//stop the previous sound if it's playing
-			this.player.stop();
-
-			//play the sample
-			this.player.play();
-
-			// remove the class 'selected' from all the buttons
-			const buttons = this.shadowRoot.querySelectorAll('.padbutton');
-			buttons.forEach((button) => {
-				button.classList.remove('selected');
-			});
-
-			//Remove selected class from all switchpad
-			const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-			switchPads.forEach((switchPad) => {
-				switchPad.classList.remove('selected');
-			});
-
-			// remove the class 'selected' from all the buttons of the explorer
-			const buttonsExplorer = this.shadowRoot.querySelectorAll('.resultButton');
-			buttonsExplorer.forEach((button) => {
-				button.classList.remove('selected');
-			});
-
-			// add 'selected' class to the pad
-			switchPad.classList.add('selected');
-
-			//we can now rename the sample
-			this.setLabel(index, switchPad);
-
-
-		};
-
-		const currentPreset = this.shadowRoot.querySelector('#selectPreset').value;
-
-		if (localStorage.WebAudioControlsMidiLearn ) {
-			let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
-			let listMidiLearn = JSON.parse(stockMidiLearn);
-			const currentMidiLearn = listMidiLearn.find(element => element.id == switchPad.id);
-			this.setMidiNoteName(index, currentMidiLearn.cc.cc);
-			return;
-		} else if(localStorage.presets && PresetManager.getMidiLearnListFromCurrentPreset(currentPreset)) {
-			const currentMidiLearn = PresetManager.getMidiLearnFromCurrentPreset(currentPreset, switchPad.id);
-			if(currentMidiLearn === undefined) return;
-			this.setMidiNoteName(index, currentMidiLearn.cc.cc);
-		}
-	}
-
-	setKnobsEffects() {
-		// enable effects knobs
-		const effectKnobs = this.shadowRoot.querySelectorAll('.knob');
-		effectKnobs.forEach((effectKnob) => { effectKnob.classList.remove('element-disabled') });
-
-		// set effects knobs to current values
-		this.shadowRoot.querySelector('#knob1').value = this.player.effects.volumeGain;
-		this.shadowRoot.querySelector('#knob2').value = this.player.effects.pan;
-		this.shadowRoot.querySelector('#knob3').value = this.player.effects.toneValue;
-
-		//pitch
-		this.shadowRoot.querySelector('#knobPitch').value = this.player.semitones;
-
-		const btnReverse = this.shadowRoot.querySelector('#reverse');
-		btnReverse.disabled = false;
-		btnReverse.classList.remove('element-disabled');
-
-		btnReverse.value = this.player.reverseValue;
-		this.player.reversed ? btnReverse.classList.add('choose') : btnReverse.classList.remove('choose');
-
-		//adsr
-		this.shadowRoot.querySelector('#knobAttack').value = this.player.effects.attackValue;
-		this.shadowRoot.querySelector('#knobDecay').value = this.player.effects.decayValue;
-		this.shadowRoot.querySelector('#knobSustain').value = this.player.effects.sustainValue;
-		this.shadowRoot.querySelector('#knobRelease').value = this.player.effects.releaseValue;
-
-		const envBtn = this.shadowRoot.querySelector('#envBtn');
-		const envKnobs = this.shadowRoot.querySelectorAll('.knobEnv');
-		envBtn.disabled = false;
-		envBtn.classList.remove('element-disabled');
-		envKnobs.forEach((envKnob) => { envKnob.classList.remove('element-disabled') });
-
-		if (!this.player.enableAdsr) {
-			envBtn.innerHTML = 'Enable';
-			envBtn.classList.remove('choose');
-			envKnobs.forEach((envKnob) => { envKnob.classList.add('element-disabled') });
-		} else {
-			envBtn.innerHTML = 'Disable';
-			envBtn.classList.add('choose');
-			envKnobs.forEach((envKnob) => { envKnob.classList.remove('element-disabled') });
-		}
-	}
-
-
-	deleteSample(index) {
-		const deleteSample = this.shadowRoot.querySelector('#deleteSample' + index);
-		const b = this.shadowRoot.querySelector('#switchpad' + index);
-		const midiLearnText = b.querySelector('.button_midi_note');
-
-		// remove the click of the delete button
-		b.removeChild(deleteSample);
-
-		// Put back the value of the progress bar to 0
-		const progressBar = this.shadowRoot.querySelector('#progress' + index);
-		progressBar.value = 0;
-
-		// Delete click listener
-		b.onmousedown = null;
-
-		// Stop samplePlayer
-		this.samplePlayers[index].stop();
-
-		// if the pad is the current pad selected, remove the canvas
-		if (b.classList.contains('selected')) {
-			this.canvasContext.clearRect(0, 0, this.canvas.width, this.canvas.height);
-			this.canvasContextOverlay.clearRect(0, 0, this.canvas.width, this.canvas.height);
-			this.player = null;
-			this.shadowRoot.querySelector('#labelSampleName').innerHTML = 'Waveform';
-		}
-
-		// Delete the samplePlayer
-		this.samplePlayers[index] = null;
-		SamplerHTMLElement.URLs[index] = '';
-		SamplerHTMLElement.name[index] = '';
-
-		// Delete the pad
-		b.innerHTML = '';
-		b.classList.remove('set');
-		b.classList.remove('selected');
-		b.classList.remove('active');
-
-		this.setDefaultPadKeyValue(index);
-		if(midiLearnText != null){
-			b.appendChild(midiLearnText);
-		}
-	}
-
-
-	setPreset = () => {
-		const presetSelectMenu = this.shadowRoot.querySelector('#selectPreset');
-		PresetManager.buildPresetMenu(presetSelectMenu);
-		
-		//!!for testing load the blank preset first !!
-		let currentPresetName = 'blank preset';
-		//let currentPresetName = presetSelectMenu.value;
-
-		this.loadCurrentPreset(currentPresetName);
-		//Create Note Set
-		this.createNoteSet();
-
-		// When the preset is loaded, we load the new sounds
-		presetSelectMenu.onchange = () => {
-			// Stop all sounds
-			this.stopAllSoundsPads();
-			this.stopAllSoundsExplorer();
-			// const currentPreset = PresetManager.getPreset(presetSelectMenu.value);
-			presetSelectMenu.blur();
-			currentPresetName = presetSelectMenu.value;
-			this.loadCurrentPreset(currentPresetName);
-			
-			this.initKnobs();
-			
-		};
-	}
-
-	loadCurrentPreset(presetName, newDecodedSounds) {
-		
-
-		this.shadowRoot.querySelector('#selectPreset').value = presetName;
-
-		this.plugin.audioNode.currentPreset = presetName;
-		this.plugin.audioNode.gui = this;
-		
-		this.samplePlayers = [];
-		this.player = null;
-		this.canvasContext.clearRect(0, 0, this.canvas.width, this.canvas.height);
-		this.canvasContextOverlay.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-		const label = this.shadowRoot.querySelector('#labelSampleName');
-		label.style.cursor = 'default';
-
-		//reset the content of the switchpads
-		const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-		switchPads.forEach((switchPad) => {
-			switchPad.innerHTML = '';
-			switchPad.classList.remove('set');
-			switchPad.classList.remove('selected');
-			switchPad.classList.remove('active');
-		});
-
-		//reset Waveform sample label name
-		this.shadowRoot.querySelector('#labelSampleName').innerHTML = "Waveform";
-
-		//load current preset sounds
-		this.loadSounds(presetName, newDecodedSounds);
-
-		//delete preset button
-		const deletePreset = this.shadowRoot.querySelector('#deletePreset');
-		let preset;
-
-		if(localStorage.presets) {
-			preset = PresetManager.getCurrentPreset(presetName);
-		}
-		else{
-			preset = PresetManager.getFactoryPreset(presetName);
-		}
-		
-		if(preset.isFactoryPresets) {
-			deletePreset.innerHTML = "Reset preset";
-		}
-		else if(!preset.isFactoryPresets){
-			deletePreset.innerHTML = "Delete preset";
-		}
-
-		deletePreset.onclick = () => {this.deletePreset();};
-
-		//save preset button
-		const savePreset = this.shadowRoot.querySelector('#savePreset');
-		savePreset.onclick = () => {this.savePreset();};
-
-		//create preset button
-		const createPreset = this.shadowRoot.querySelector('#createPreset');
-		createPreset.onclick = () => {this.createPreset("custom preset",switchPads);};
-
-		const noteSetBtn = this.shadowRoot.querySelector('#createNoteSet');
-		noteSetBtn.disabled = true;
-		noteSetBtn.classList.add('element-disabled');
-
-	}
-
-	loadCurrentState(currentState) {
-		SamplerHTMLElement.URLs = changePathToAbsolute(PresetManager.getPresetUrls(currentState));
-		SamplerHTMLElement.defaultName = PresetManager.getPresetUrlsNames(currentState);
-
-
-		let bl = new BufferLoader(this.plugin.audioContext, SamplerHTMLElement.URLs, this.shadowRoot, (bufferList) => {
-			
-			this.decodedSounds = bufferList;
-
-			this.decodedSounds.forEach((decodedSound, index) => {
-
-				if(decodedSound != undefined) { 
-				this.samplePlayers[index] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", decodedSound, this.plugin.audioNode, 0);
-				if(currentState.samples[index].player){
-					SamplerHTMLElement.name[index] = currentState.samples[index].player.name;
-					SamplerHTMLElement.defaultName[index] = currentState.samples[index].name;
-					this.samplePlayers[index] = PresetManager.loadPlayerFromCurrentPreset(this.samplePlayers[index], index, currentState);
-				}
-				else if(currentState) {
-					SamplerHTMLElement.name[index] = currentState.samples[index].name;
-				}
-				this.setSwitchPad(index);
-				this.setDefaultPadKeyValue(index);
-				window.requestAnimationFrame(this.handleAnimationFrame);
-				}
-			});
-			for(let i=0; i<16; i++) {
-				const switchPad = this.shadowRoot.querySelector('#switchpad' + i);
-				switchPad.midiController = {};
-			}
-			
-			//bind the midi learn into the corresponding pad
-			const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-			if(currentState.midiLearn){
-			const switchPadsWithMidiLearn = currentState.midiLearn.filter(element => element.cc.cc);
-			switchPads.forEach((switchpad) => {
-				switchpad.midiController = {};
-				if(switchPadsWithMidiLearn.find(element => element.id === switchpad.id)) {
-					switchpad.midiController.channel = currentState.midiLearn.find(element => element.id === switchpad.id).cc.channel;
-					switchpad.midiController.cc = currentState.midiLearn.find(element => element.id === switchpad.id).cc.cc;
-
-					this.setMidiNoteName(switchpad.id.match(/\d+/g)[0], switchpad.midiController.cc);
-
-					localStorage.setItem("WebAudioControlsMidiLearn", JSON.stringify(currentState.midiLearn));
-				}
-			});
-		}
-
-		});
-	bl.load();
-	}
-	
-	loadSounds = (presetValue, newDecodedSounds) => {
-		SamplerHTMLElement.URLs = [];
-		SamplerHTMLElement.name = [];
-		SamplerHTMLElement.defaultName = [];
-		// On remet toutes les progress bar à 0
-		for (let i = 0; i < 16; i++) {
-			const progressBar = this.shadowRoot.querySelector('#progress' + i);
-			progressBar.value = 0;
-		}
-		
-		if(localStorage.presets) {
-			
-			// if local storage has presets item, load the selected preset saved in local storage
-			const currentPreset = PresetManager.getCurrentPreset(presetValue);
-
-			if(currentPreset) {
-				//get urls from current preset
-				let currentPresetUrls = PresetManager.getPresetUrls(currentPreset);
-				const currentPresetNames = PresetManager.getPresetUrlsNames(currentPreset);
-				currentPresetUrls = changePathToAbsolute(currentPresetUrls);
-				SamplerHTMLElement.URLs = currentPresetUrls;
-				SamplerHTMLElement.defaultName = currentPresetNames;
-			}
-			let bl = new BufferLoader(this.plugin.audioContext, SamplerHTMLElement.URLs, this.shadowRoot, (bufferList) => {
-				if(newDecodedSounds) {this.decodedSounds = newDecodedSounds}
-				else {this.decodedSounds = bufferList}
-
-				this.decodedSounds.forEach((decodedSound, index) => {
-
-					if(decodedSound != undefined) { 
-					this.samplePlayers[index] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", decodedSound, this.plugin.audioNode, 0);
-					if(currentPreset.samples[index].player){
-						SamplerHTMLElement.name[index] = currentPreset.samples[index].player.name;
-						SamplerHTMLElement.defaultName[index] = currentPreset.samples[index].name;
-						this.samplePlayers[index] = PresetManager.loadPlayerFromCurrentPreset(this.samplePlayers[index], index, currentPreset);
-						// this.samplePlayers[index].reversed = currentPreset.samples[index].player.reversed;
-					}
-					else if(currentPreset) {
-						SamplerHTMLElement.name[index] = currentPreset.samples[index].name;
-					}
-					this.setSwitchPad(index);
-					this.setDefaultPadKeyValue(index);
-					window.requestAnimationFrame(this.handleAnimationFrame);
-					}
-				});
-				for(let i=0; i<16; i++) {
-					const switchPad = this.shadowRoot.querySelector('#switchpad' + i);
-					switchPad.midiController = {};
-				}
-				const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-				//if current preset has midi learn, load midi learn from current preset, else load default midi mapping
-				if(localStorage.presets && PresetManager.getMidiLearnListFromCurrentPreset(currentPreset)){
-					PresetManager.loadMidiControllerFromCurrentPreset(currentPreset, switchPads);
-					switchPads.forEach((switchPad) => {
-						const index = switchPad.id.match(/\d+/g)[0];
-						const currentMidiLearn = PresetManager.getMidiLearnFromCurrentPreset(currentPreset, switchPad.id);
-						if(currentMidiLearn.cc.cc === undefined) {
-							if(switchPad.querySelector('.button_midi_note')){
-								switchPad.querySelector('.button_midi_note').remove();
-							}
-						}
-						this.setMidiNoteName(index, currentMidiLearn.cc.cc);
-					});
-				}
-				else {
-					this.defaultMidiMapping();
-				}
-			});
-		bl.load();
-		}
-		// if local Storage doesn't have presets item, load the selected preset from factory presets
-		if (!localStorage.getItem("presets")) {
-			if(presetValue.name) {
-				presetValue = presetValue.name;
-			}
-			
-			const currentPreset = PresetManager.getCurrentPreset(presetValue);	
-			SamplerHTMLElement.URLs = PresetManager.getPresetUrls(currentPreset);
-			SamplerHTMLElement.URLs = changePathToAbsolute(SamplerHTMLElement.URLs);
-			SamplerHTMLElement.name = PresetManager.getPresetUrlsNames(currentPreset);
-			SamplerHTMLElement.defaultName = PresetManager.getPresetUrlsNames(PresetManager.getCurrentFactoryPreset(presetValue));
-			// on charge les sons par défaut
-			let bl = new BufferLoader(this.plugin.audioContext, SamplerHTMLElement.URLs, this.shadowRoot, (bufferList) => {
-				// on a chargé les sons, on stocke sous forme de tableau
-				this.decodedSounds = bufferList;
-				// Pour chaque son on créé un SamplePlayer
-				this.decodedSounds.forEach((decodedSound, index) => {
-					// Si bufferList est vide on passe au suivant
-					if (decodedSound != undefined) {
-						this.samplePlayers[index] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", decodedSound, this.plugin.audioNode, 0);
-						this.setSwitchPad(index);
-						this.setDefaultPadKeyValue(index);
-						window.requestAnimationFrame(this.handleAnimationFrame);
-					}
-				});
-				for(let i=0; i<16; i++) {
-					const switchPad = this.shadowRoot.querySelector('#switchpad' + i);
-					switchPad.midiController = {};
-				}
-				this.defaultMidiMapping();
-			});
-
-			bl.load();
-			if(!newDecodedSounds) this.defaultMidiMapping();
-		}
-		this.defaultMidiMapping();
-		this.setDefaultPadsKeyValue();
-	}
-
-	promptUser = async() => {
-		if(!this.shadowRoot.querySelector('html-prompt')) {
-
-			const resultExplorerPads = this.shadowRoot.querySelectorAll('.resultExplorer');
-			//hide all resultExplorerPads
-			resultExplorerPads.forEach((resultExplorerPad) => {
-				resultExplorerPad.style.display = "none";
-			});
-
-
-			let promptElement = document.createElement('html-prompt');
-			this.shadowRoot.querySelector("#results").append(promptElement);
-
-			//display explorer choice and hide the others
-			const knob = this.shadowRoot.querySelector('#choiceKnobs');
-			const explorer = this.shadowRoot.querySelector('#choiceExplorer');
-			const MIDI = this.shadowRoot.querySelector('#choiceMIDI');
-
-			const divKnob = this.shadowRoot.querySelector('#knobs');
-			const divExplorer = this.shadowRoot.querySelector('#explorer');
-			const divMIDI = this.shadowRoot.querySelector('#MIDI');
-
-			explorer.classList.add('choose');
-
-			divKnob.style.display = 'none';
-			divExplorer.style.display = 'inline-block';
-			divMIDI.style.display = 'none';
-
-			knob.classList.remove('choose');
-			explorer.classList.add('choose');
-			MIDI.classList.remove('choose');
-
-			promptElement.addEventListener('focus', (e) => {
-				console.log("focus");
-				this.enableKeyboard = false;
-			})
-			promptElement.addEventListener('promptClosed', (e) => {
-				this.enableKeyboard = true;
-				this.shadowRoot.querySelector('#sampler').focus();
-			});
-			const response = await promptElement.showPrompt("Enter preset name!");
-
-			resultExplorerPads.forEach((resultExplorerPad) => {
-				resultExplorerPad.style.display = "inline-block";
-			});
-			return response;
-		}
-	}
-
-	 createNoteSet = () => {
-		const noteSetBtn = this.shadowRoot.querySelector('#createNoteSet');
-		const selectMenuScale = this.shadowRoot.querySelector('#selectNoteSet');
-		const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-		
-		NoteSet.buildScaleMenu(selectMenuScale);
-
-		if ((!this.player) || (selectMenuScale.value === "")) {
-			noteSetBtn.disabled = true;
-			noteSetBtn.classList.add('element-disabled');
-		}
-		selectMenuScale.onchange = () => {
-			if (selectMenuScale.value === "") {
-				noteSetBtn.disabled = true;
-			} else {
-				if(this.player) {
-					noteSetBtn.disabled = false;
-					noteSetBtn.classList.remove('element-disabled');
-				}
-			}
-		};
-
-		switchPads.forEach((switchPad) => {
-			switchPad.onclick = () => {
-				if(selectMenuScale.value !== "") {
-					noteSetBtn.disabled = false;
-					noteSetBtn.classList.remove('element-disabled');
-				}
-			};
-		});
-
-		
-		noteSetBtn.onclick = async() => {
-			if(!this.player) {return};
-			const currentPlayer = this.player;
-
-			if(selectMenuScale.value === "") return;
-			
-			const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-			let presetName;
-
-			if(this.promptAvailable) {
-				presetName = prompt("Preset name :");
-
-				let stopExecution = false;
-
-				if (presetName === "") {
-					alert("Error : preset name can't be empty");
-					stopExecution = true;
-					return;
-				}
-				// if the preset name already exists, we ask the user if he wants to overwrite it
-				else if (PresetManager.getCurrentPreset(presetName)) {
-					// alert("Error : this preset name already exists");
-					if(!confirm("This preset name already exists. Do you want to overwrite it ?")){
-						stopExecution = true;
-						return;
-					} else {
-						PresetManager.removePreset(presetName);
-					}
-				}
-				else if (presetName === null) {
-					// Si l'utilisateur annule la saisie
-					stopExecution = true;
-					return;
-				}
-
-				if(stopExecution) {return};
-			}
-			else {
-				const response = await this.promptUser();
-				if(response === "" || !response) return;
-				if(PresetManager.getCurrentPreset(response)) PresetManager.removePreset(response);
-				presetName = response;
-			}
-			
-			//change the index of the player in the samplePlayers array
-			const playerIndex = this.samplePlayers.indexOf(currentPlayer);
-			
-			this.swapSample(playerIndex, 7);
-			const fundamentalIndex = 7;
-
-			this.samplePlayers.forEach((player, index) => {
-				if(player && player !== currentPlayer) {
-					//clean samplePlayer
-					this.deleteSample(index);
-				}
-			});
-
-			let namePlayer = SamplerHTMLElement.name[fundamentalIndex];
-			let rootNoteName;
-			if(namePlayer.match(/(?:^|\s)([A-G][#b]?[0-9]?)(?=\s|$)/)){
-				rootNoteName = namePlayer.match(/(?:^|\s)([A-G][#b]?[0-9]?)(?=\s|$)/)[0];
-				//delete space
-				rootNoteName = rootNoteName.replace(/\s/g, '');
-				//By default the octave is 4
-				if(!rootNoteName.match(/[0-9]/)){
-					const octave = '4';
-					SamplerHTMLElement.name[fundamentalIndex] = SamplerHTMLElement.name[fundamentalIndex] + octave;
-				}
-			} else {
-				//By default the root note is C4
-				rootNoteName = 'C4';
-				namePlayer = namePlayer + ' ' + rootNoteName;
-				SamplerHTMLElement.name[fundamentalIndex] = namePlayer;
-			}
-
-			const scales = NoteSet.getScales();
-
-			const currentScale = scales.find(scale => scale.name === selectMenuScale.value);
-            if(!currentScale) return;
-
-			const ascendingNotesSemitones = currentScale.notes.ascending.map(note => note.semitones);
-			const descendingNotesSemitones = currentScale.notes.descending.map(note => note.semitones);
-
-			const newNamesScale = NoteSet.changeScaleNoteName(ascendingNotesSemitones, descendingNotesSemitones, rootNoteName);
-			this.setNoteValue(fundamentalIndex, newNamesScale.ascending[0]);
-
-			//if the root player is pitched, we need to pitch the new players
-			const newPlayer = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", currentPlayer.newDecodedSound, this.plugin.audioNode, currentPlayer.semitones);
-			newPlayer.decodedSound = newPlayer.newDecodedSound;
-			newPlayer.semitones = 0;
-			this.setKnobsEffects();
-			this.samplePlayers[fundamentalIndex] = newPlayer;
-			this.samplePlayers[fundamentalIndex] = NoteSet.setEffectsSamplePlayer(this.samplePlayers[fundamentalIndex], currentPlayer);
-
-			
-			let indexAscending = 1;
-			for(let i = fundamentalIndex + 1; i < switchPads.length; i++) {
-				this.samplePlayers[i] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", newPlayer.newDecodedSound, this.plugin.audioNode, 0);
-				SamplerHTMLElement.name[i] = namePlayer.replace(rootNoteName, newNamesScale.ascending[indexAscending]);
-				SamplerHTMLElement.defaultName[i] = SamplerHTMLElement.defaultName[fundamentalIndex];
-				SamplerHTMLElement.URLs[i]= SamplerHTMLElement.URLs[fundamentalIndex];
-
-				this.samplePlayers[i] = NoteSet.setEffectsSamplePlayer(this.samplePlayers[i], currentPlayer);
-
-				this.samplePlayers[i].semitones = ascendingNotesSemitones[indexAscending];
-				this.setSwitchPad(i);
-				this.setNoteValue(i, newNamesScale.ascending[indexAscending]);
-				indexAscending++;
-			}
-
-			let indexDescending = 1;
-			for(let i = fundamentalIndex - 1; i >= 0; i--) {
-				this.samplePlayers[i] = new SamplePlayer(this.plugin.audioContext, this.canvas, this.canvasOverlay, "orange", newPlayer.newDecodedSound, this.plugin.audioNode, 0);
-				SamplerHTMLElement.name[i] = namePlayer.replace(rootNoteName, newNamesScale.descending[indexDescending]);
-				SamplerHTMLElement.defaultName[i] = SamplerHTMLElement.defaultName[fundamentalIndex];
-				SamplerHTMLElement.URLs[i]= SamplerHTMLElement.URLs[fundamentalIndex];
-
-				this.samplePlayers[i] = NoteSet.setEffectsSamplePlayer(this.samplePlayers[i], currentPlayer);
-
-				this.samplePlayers[i].semitones = descendingNotesSemitones[indexDescending];
-				this.setSwitchPad(i);
-				this.setNoteValue(i, newNamesScale.descending[indexDescending]);
-				indexDescending++;
-			}
-
-			this.setDefaultPadsKeyValue();
-
-			PresetManager.createPreset(presetName, 'noteSet', this.samplePlayers, SamplerHTMLElement, switchPads);
-			PresetManager.saveAllPresets();
-			const presetSelectMenu = this.shadowRoot.querySelector('#selectPreset');
-			PresetManager.buildPresetMenu(presetSelectMenu);
-
-			const newDecodedSounds = [];
-			this.samplePlayers.forEach((player, index) => {
-				if(player) {
-					newDecodedSounds[index] = player.decodedSound;
-				}
-			});
-			this.loadCurrentPreset(presetName, newDecodedSounds);
-
-			this.shadowRoot.querySelector('#selectPreset').value = presetName;
-		}
-	}
-
-
-	createPreset = async(type, switchPads) => {
-		this.initKnobs();
-		let presetName;
-		
-		if(this.promptAvailable) {
-			// Get the preset name
-			presetName = prompt("Preset name :");
-
-			//if the preset name is empty, we stop the execution
-			if (presetName === "") {
-				alert("Error : preset name can't be empty");
-				return;
-			}
-			// If the preset name already exists, we ask the user if he wants to overwrite it
-			else if (PresetManager.getCurrentPreset(presetName)) {
-				// alert("Error : this preset name already exists");
-				if(confirm("This preset name already exists. Do you want to overwrite it ?")){
-					PresetManager.removePreset(presetName);
-					PresetManager.createPreset(presetName, type, this.samplePlayers, SamplerHTMLElement, switchPads);
-					PresetManager.saveAllPresets();
-					return;
-				}
-				else return;
-			}
-			else if (presetName === null) {
-				// If the user cancels the input
-				return;
-			}
-			else {
-				PresetManager.createPreset(presetName, type, this.samplePlayers, SamplerHTMLElement, switchPads);
-				PresetManager.saveAllPresets();
-			}
-		} else {
-			const response = await this.promptUser();
-				if(response === "") return;
-				if(PresetManager.getCurrentPreset(response)) PresetManager.removePreset(response);
-				presetName = response;
-				PresetManager.createPreset(presetName, type, this.samplePlayers, SamplerHTMLElement, switchPads);
-				PresetManager.saveAllPresets();
-		}
-
-		const presetSelectMenu = this.shadowRoot.querySelector('#selectPreset');
-		PresetManager.buildPresetMenu(presetSelectMenu);
-
-		this.loadCurrentPreset(presetName);
-		this.shadowRoot.querySelector('#selectPreset').value = presetName;
-		
-	}
-
-	savePreset = () => {
-		this.initKnobs();
-		const preset = this.shadowRoot.querySelector('#selectPreset');
-		const presetName = preset.value;
-		PresetManager.savePresets(presetName, this.samplePlayers, SamplerHTMLElement);
-	
-		this.loadCurrentPreset(presetName);
-		
-		
-	}
-
-	getCurrentState = (presetName, samplePlayers) => {
-		this.plugin.audioNode.currentPreset = presetName;
-		this.plugin.audioNode.gui = this;
-
-		const currentState = structuredClone(PresetManager.getCurrentPreset(presetName));
-		// console.log(currentState);
-
-		currentState.samples = PresetManager.newSamples(SamplerHTMLElement.URLs, SamplerHTMLElement.name, SamplerHTMLElement.defaultName, samplePlayers);
-		currentState.midiLearn = PresetManager.getMidiPresetsFromLocalStorage();
-		return currentState;
-	}
-
-	deletePreset = () => {
-		this.initKnobs();
-		this.stopAllSoundsPads();
-		this.stopAllSoundsExplorer();
-		const preset = this.shadowRoot.querySelector('#selectPreset').value;
-		const presetSelectMenu = this.shadowRoot.querySelector('#selectPreset');
-		const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-
-		if(PresetManager.isFactoryPreset(preset)) {
-			PresetManager.resetPreset(preset);
-			this.loadCurrentPreset(preset);
-		} else {
-			PresetManager.removePreset(preset);
-			PresetManager.resetAllMidiLearning();
-		
-			
-			PresetManager.buildPresetMenu(presetSelectMenu);
-			
-			this.loadCurrentPreset(presetSelectMenu.value);
-		}
-
-	}
-
-	noteOnKey = (padbutton) => {
-		const numberRegex = /\d+/g;
-		const padIndex = +padbutton.id.match(numberRegex)[0];
-		
-
-		//call setValue method from webaudio-controls to change the Gui when key is pressed
-		if(padbutton.nodeName === 'WEBAUDIO-SWITCH') padbutton.setValue(1);
-
-		this.player = this.samplePlayers[padIndex];
-		if (!this.player) return;
-
-		this.shadowRoot.querySelector('#labelSampleName').innerHTML = padbutton.innerHTML.split('<')[0];
-
-		this.setKnobsEffects();
-
-		this.player.drawWaveform();
-
-		this.player.stop();
-		this.player.play();
-
-		const buttons = this.shadowRoot.querySelectorAll('.switchpad');
-		buttons.forEach((button) => {
-			button.classList.remove('selected');
-		});
-
-		const buttonsExplorer = this.shadowRoot.querySelectorAll('.resultButton');
-		buttonsExplorer.forEach((button) => {
-			button.classList.remove('selected');
-		});
-
-		padbutton.classList.add('selected');
-
-		this.setLabel(padIndex, padbutton);
-
-		
-	}
-
-	noteOffKey = (padbutton) => {
-		
-		//call setValue method from webaudio-controls to change the Gui when key is up
-		if(padbutton.nodeName === 'WEBAUDIO-SWITCH') padbutton.setValue(0);
-		
-		const numberRegex = /\d+/g;
-		const padIndex = +padbutton.id.match(numberRegex)[0];
-		if (!padbutton) return;
-		padbutton.classList.remove('active');
-		this.player = this.samplePlayers[padIndex];
-		if (!this.player) return;
-		if (this.player.enableAdsr) {
-			this.player.releaseEnv();
-		};
-	}
-
-	setKeyboardPress() {
-		const enableKeysBtn = this.shadowRoot.querySelector('#enableKeyboard');
-		let localEnableKeyboard = false;
-		enableKeysBtn.addEventListener('click', (e) => {
-			if(localEnableKeyboard) {
-				localEnableKeyboard= false;
-				enableKeysBtn.textContent = "Keyboard OFF"
-				enableKeysBtn.classList.remove('choose');
-			} else {
-				localEnableKeyboard = true;
-				enableKeysBtn.textContent = "Keyboard ON"
-				enableKeysBtn.classList.add('choose');
-			}
-		});
-		this.shadowRoot.addEventListener('keydown',(e) => {
-			if(!this.enableKeyboard || !localEnableKeyboard) return;
-			//cancel the event if it's a repeat -> sample playing in loop
-			if (e.repeat) {
-				e.preventDefault();
-				return;
-			}
-			switch (e.code) {
-				case 'Digit1':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad12'));
-					break;
-				case 'Digit2':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad13'));
-					break;
-				case 'Digit3':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad14'));
-					break;
-				case 'Digit4':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad15'));
-					break;
-				case 'KeyQ':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad8'));
-					break;
-				case 'KeyW':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad9'));
-					break;
-				case 'KeyE':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad10'));
-					break;
-				case 'KeyR':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad11'));
-					break;
-				case 'KeyA':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad4'));
-					break;
-				case 'KeyS':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad5'));
-					break;
-				case 'KeyD':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad6'));
-					break;
-				case 'KeyF':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad7'));
-					break;
-				case 'KeyZ':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad0'));
-					break;
-				case 'KeyX':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad1'));
-					break;
-				case 'KeyC':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad2'));
-					break;
-				case 'KeyV':
-					this.noteOnKey(this.shadowRoot.querySelector('#switchpad3'));
-					break;
-			}
-		});
-
-		this.shadowRoot.addEventListener('keyup',(e) => {
-			switch (e.code) {
-				case 'Digit1':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad12'));
-					break;
-				case 'Digit2':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad13'));
-					break;
-				case 'Digit3':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad14'));
-					break;
-				case 'Digit4':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad15'));
-					break;
-				case 'KeyQ':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad8'));
-					break;
-				case 'KeyW':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad9'));
-					break;
-				case 'KeyE':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad10'));
-					break;
-				case 'KeyR':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad11'));
-					break;
-				case 'KeyA':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad4'));
-					break;
-				case 'KeyS':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad5'));
-					break;
-				case 'KeyD':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad6'));
-					break;
-				case 'KeyF':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad7'));
-					break;
-				case 'KeyZ':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad0'));
-					break;
-				case 'KeyX':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad1'));
-					break;
-				case 'KeyC':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad2'));
-					break;
-				case 'KeyV':
-					this.noteOffKey(this.shadowRoot.querySelector('#switchpad3'));
-					break;
-			}
-		});
-	}
-
-	setVelocity(){
-		const velocityBtn = this.shadowRoot.querySelector('#enableVelocity');
-		velocityBtn.onclick = () => {
-			if(!this.enableVelocity) {
-				velocityBtn.classList.add('choose');
-				velocityBtn.innerHTML = 'Velocity ON';
-				this.enableVelocity = true;
-			} else {
-				velocityBtn.classList.remove('choose');
-				velocityBtn.innerHTML = 'Velocity OFF';
-				this.enableVelocity = false;
-			}
-		};
-	}
-	
-	setupMidiListeners(audioNode) {
-		console.log("setupMIDIEvents called at " + Date.now());
-		const wamNode = audioNode._wamNode;
-		wamNode.addEventListener('wam-midi', (e) => this.processMIDIEvents([{ event: e.detail.data.bytes, time: 0 }]));
-	}
-
-	processMIDIEvents(midiEvents, enableVelocity) {
-		// console.log("processMIDIEvents called at " + Date.now());
-		// console.log("midiEvents:", midiEvents);
-
-		midiEvents.forEach(message => {
-			if (message.event[0] === MIDI.NOTE_ON && message.event[2] !== 0) {
-				let midiNote = message.event[1]
-				let velocity = message.event[2];
-				this.updateMidiNoteValue(midiNote);
-				this.noteOn(midiNote, message.time, velocity);
-				//if midi controller has no noteOff
-				// if (velocity > 0) this.noteOn(midiNote, message.time)
-				// else this.noteOff(midiNote, message.time)
-			} else if (message.event[0] === MIDI.NOTE_OFF || (message.event[0] === MIDI.NOTE_ON && message.event[2] === 0)) { // NOTE_ON avec velocity 0 = NOTE_OFF
-				let midiNote = message.event[1]
-				this.noteOff(midiNote, message.time)
-			} else if (message.event[0] >= MIDI.CC && message.event[0] < MIDI.CC + 16) {
-				let controlId = message.event[0];
-				let ccValue = message.event[2];
-				this.controlChange(controlId, ccValue)
-			}
-		});
-	}
-
-	controlChange(controlId, ccValue) {
-		if (!this.player) return;
-		const samplePlayer = this.player;
-		// console.log("controlChange", controlId, ccValue)
-
-		if (controlId == this.controlBindings.get('volume')) {
-			samplePlayer.effects.volumeGain = parseFloat(ccValue / 127);
-			this.shadowRoot.querySelector('#knob1').value = parseFloat(ccValue / 127);
-		}
-		if (controlId == this.controlBindings.get('pan')) {
-			samplePlayer.effects.pan = parseFloat((ccValue / 127) * 2 - 1);
-			this.shadowRoot.querySelector('#knob2').value = parseFloat((ccValue / 127) * 2 - 1);
-		}
-
-		if (controlId == this.controlBindings.get('tone')) {
-			samplePlayer.effects.tone = parseFloat((ccValue / 127) * 2 - 1);
-			this.shadowRoot.querySelector('#knob3').value = parseFloat((ccValue / 127) * 2 - 1);
-		}
-
-		if (controlId == this.controlBindings.get('pitch')) {
-			samplePlayer.semitones = parseInt(((ccValue / 127) * 2 - 1) * 24);
-			this.shadowRoot.querySelector('#knobPitch').value = parseInt(((ccValue / 127) * 2 - 1) * 24);
-		}
-
-		//adsr
-		if (controlId == this.controlBindings.get('attack')) {
-			samplePlayer.effects.attackValue = parseFloat((ccValue / 127) * 2);
-			this.shadowRoot.querySelector('#knobAttack').value = parseFloat((ccValue / 127)) * 2;
-		}
-
-		if (controlId == this.controlBindings.get('decay')) {
-			samplePlayer.effects.decayValue = parseFloat((ccValue / 127));
-			this.shadowRoot.querySelector('#knobDecay').value = parseFloat((ccValue / 127));
-		}
-
-		if (controlId == this.controlBindings.get('sustain')) {
-			samplePlayer.effects.sustainValue = parseFloat((ccValue / 127));
-			this.shadowRoot.querySelector('#knobSustain').value = parseFloat((ccValue / 127));
-		}
-
-		if (controlId == this.controlBindings.get('release')) {
-			samplePlayer.effects.releaseValue = parseFloat((ccValue / 127) * 2);
-			this.shadowRoot.querySelector('#knobRelease').value = parseFloat((ccValue / 127)) * 2;
-		}
-	}
-
-
-
-
-	noteOn(note, tickStartTime, velocity) {
-		// console.log("noteOn", note, tickStartTime)
-		const presetValue = this.shadowRoot.querySelector('#selectPreset').value;
-
-		let currentPad;
-		let padIndex;
-		
-		const numberRegex = /\d+/g;
-
-		if(localStorage.getItem("WebAudioControlsMidiLearn")) {
-			//get current midi learn binding from local storage
-			let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
-			let listMidiLearn = JSON.parse(stockMidiLearn);
-			
-			// get the pad corresponding to the note passed in parameter
-			currentPad = listMidiLearn.find(pad => pad.cc.cc === note);
-			
-			if (!currentPad) return;
-		
-			padIndex = +currentPad.id.match(numberRegex)[0];
-			this.setMidiNoteName(padIndex, note);
-		}
-		
-		//if local storage is empty
-		else {
-			const switchpads = this.shadowRoot.querySelectorAll('webaudio-switch');
-			switchpads.forEach((pad) => {
-				if(pad.midiController.cc === note) {
-					currentPad = pad;
-				}
-			});
-			if(currentPad === undefined) return;
-			// filter the number in the id of the pad
-			padIndex = +currentPad.id.match(numberRegex)[0];
-		}
-		
-
-		const padbutton = this.shadowRoot.querySelector('#switchpad' + padIndex);
-		if(padbutton.nodeName === 'WEBAUDIO-SWITCH') padbutton.value = 1;
-
-		this.player = this.samplePlayers[padIndex];
-
-		// if the player doesn't exist, we stop the function
-		if (!this.player) return;
-
-		//Display the current pad name over the waveform
-		const currentSwitchPad = this.shadowRoot.querySelector("#switchpad" + padIndex);
-
-		// console.log(currentSwitchPad.midiController);
-
-		const switchPadName = currentSwitchPad.querySelector("p").innerHTML;
-		this.shadowRoot.querySelector('#labelSampleName').innerHTML = switchPadName;
-
-		this.setKnobsEffects();
-
-		//if velocity is On
-		if(this.enableVelocity) {
-			//set velocity to volumeGain
-			this.player.effects.volumeGain = parseFloat(velocity / 127);	
-			this.shadowRoot.querySelector('#knob1').value = parseFloat(velocity / 127);
-		}  else {
-			this.shadowRoot.querySelector('#knob1').value = 0.5;
-		}
-
-		this.player.drawWaveform();
-
-		this.player.stop();
-		this.player.play();
-
-
-		//remove selected class from all switchpads
-		const switchPads = this.shadowRoot.querySelectorAll('.switchpad');
-		switchPads.forEach((switchPad) => {
-			switchPad.classList.remove('selected');
-		});
-
-		//add selected class to the current switchpad played
-		currentSwitchPad.classList.add('selected');
-
-		// On enleve la class .selected de tous les button de l'explorer
-		const buttonsExplorer = this.shadowRoot.querySelectorAll('.resultButton');
-		buttonsExplorer.forEach((button) => {
-			button.classList.remove('selected');
-		});
-
-
-		//now we can rename the pad
-		this.setLabel(padIndex, currentSwitchPad);
-
-
-	}
-
-	noteOff(note, tickStartTime) {
-
-		if(!localStorage.getItem("WebAudioControlsMidiLearn")) return;
-		//get current midi learn binding from local storage
-		let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
-		let listMidiLearn = JSON.parse(stockMidiLearn);
-		
-		// get the pad corresponding to the note passed in parameter
-		let currentPad = listMidiLearn.find(pad => pad.cc.cc === note);
-
-		if (!currentPad) return;
-
-		// filter the number in the id of the pad
-		const numberRegex = /\d+/g;
-		const padIndex = +currentPad.id.match(numberRegex)[0];
-
-		const padbutton = this.shadowRoot.querySelector('#switchpad' + padIndex);
-		if(padbutton.nodeName === 'WEBAUDIO-SWITCH') padbutton.value = 0;
-
-		if (!this.shadowRoot.querySelector('#switchpad' + padIndex)) return;
-		this.shadowRoot.querySelector('#switchpad' + padIndex).classList.remove('active');
-		this.player = this.samplePlayers[padIndex];
-		if ((!this.player) || (!this.player.enableAdsr)) { return };
-		if (this.player.enableAdsr) this.player.releaseEnv();
-	}
-
-	// name of the custom HTML element associated
-	// with the plugin. Will appear in the DOM if
-	// the plugin is visible
-	static is() {
-		return 'sampler-html-element-without-builder';
-	}
-
+  }
+
+  handleAnimationFrame = () => {
+    if (this.player) {
+      this.player.drawOverlays();
+    }
+    window.requestAnimationFrame(this.handleAnimationFrame);
+  };
+
+  connectedCallback() {
+    this.setupMidiListeners(this.plugin.audioNode);
+    // get the canvas for the waveform
+    this.canvas = this.shadowRoot.querySelector("#myCanvas");
+    this.canvasOverlay = this.shadowRoot.querySelector("#myCanvasOverlay");
+    // get the canvas context
+    this.canvasContext = this.canvas.getContext("2d");
+    this.canvasContextOverlay = this.canvasOverlay.getContext("2d");
+
+    // add listeners on choiceButtons
+    this.setChoiceButtons();
+
+    // add listeners on knobs effects
+    this.setKnobs();
+
+    // add listeners on the freesound Explorer
+    this.setExplorer();
+
+    // add listeners on the input of ApiKey
+    this.setApiKey();
+
+    // add drag and drop for switchpads
+    this.setAllDragAndDrop();
+
+    // add listeners on the select presets
+    this.setPreset();
+
+    // add listeners on the canvas
+    this.addCanvasListeners();
+
+    // add listeners on the keyboard for playing pads
+    this.setKeyboardPress();
+
+    // Set background image style to #sampler html element
+    //this.setSamplerBackgroundImage();
+
+    // set relative urls to absolute for webaudiocontrol spritesheet images
+    this.setWebAudioControlSpritesheetImages();
+
+    //update Midi Note Value on GUI
+    this.updateMidiNoteValue();
+
+    this.setVelocity();
+  }
+
+  setWebAudioControlSpritesheetImages() {
+    let switches = this.shadowRoot.querySelectorAll(".switchpad");
+    switches.forEach((pad) => {
+      let imgUrl = pad.getAttribute("src");
+      // change pad.src to absolute
+      const absoluteURL = getBaseURL() + imgUrl;
+      //#region const imgBase64
+      const imgBase64 =
+        "data:image/png;base64,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";
+      //#endregion
+      pad.setAttribute("src", imgBase64);
+    });
+  }
+
+  setSamplerBackgroundImage() {
+    let samplerDiv = this.shadowRoot.querySelector("#sampler");
+    samplerDiv.style.backgroundImage = "url(" + this.backgroundImageURL + ")";
+    //samplerDiv.style.background = "red";
+
+    console.log(
+      "samplerDiv.style.backgroundImage : " + samplerDiv.style.backgroundImage
+    );
+  }
+
+  addCanvasListeners() {
+    this.canvasOverlay.onmousemove = (evt) => {
+      let rect = this.canvas.getBoundingClientRect();
+
+      this.mousePos.x = evt.clientX - rect.left;
+      this.mousePos.y = evt.clientY - rect.top;
+
+      if (this.player) {
+        this.player.highLightTrimBarsWhenClose(this.mousePos);
+      }
+    };
+
+    this.canvasOverlay.onmousedown = (evt) => {
+      if (this.player) {
+        this.player.selectTrimbars();
+      }
+    };
+
+    this.canvasOverlay.onmouseup = (evt) => {
+      if (this.player) {
+        this.player.releaseTrimBars();
+      }
+    };
+
+    this.canvasOverlay.onmouseout = (evt) => {
+      if (this.player) {
+        this.player.releaseTrimBarsOnMouseOut();
+      }
+    };
+  }
+
+  setKnobs() {
+    const effectKnobs = this.shadowRoot.querySelectorAll(".knob");
+    effectKnobs.forEach((effectKnob) => {
+      effectKnob.classList.add("element-disabled");
+    });
+
+    this.shadowRoot.querySelector("#knob1").addEventListener("input", (e) => {
+      //this.plugin.audioNode.setParamsValues({ volumeGain: e.target.value });
+
+      if (this.player == undefined) return;
+
+      this.player.effects.volumeGain = parseFloat(e.target.value);
+    });
+
+    this.shadowRoot.querySelector("#knob2").addEventListener("input", (e) => {
+      //this.plugin.audioNode.setParamsValues({ pan: e.target.value });
+
+      if (this.player == undefined) return;
+
+      this.player.effects.pan = parseFloat(e.target.value);
+    });
+
+    this.shadowRoot.querySelector("#knob3").addEventListener("input", (e) => {
+      //this.plugin.audioNode.setParamsValues({ tone: e.target.value });
+
+      if (this.player == undefined) return;
+
+      this.player.effects.tone = parseFloat(e.target.value);
+    });
+
+    this.shadowRoot
+      .querySelector("#knobPitch")
+      .addEventListener("input", (e) => {
+        if (this.player == undefined) return;
+        this.player.semitones = parseInt(e.target.value);
+      });
+
+    //button reverse
+    const btnReverse = this.shadowRoot.querySelector("#reverse");
+    btnReverse.disabled = true;
+    btnReverse.classList.add("element-disabled");
+    btnReverse.addEventListener("click", (e) => {
+      if (this.player == undefined) return;
+
+      const reverseSoundBuffer = this.player.reverseSound(
+        this.player.decodedSound
+      );
+      this.player.reversed = !this.player.reversed;
+
+      this.player.decodedSound = reverseSoundBuffer;
+      this.player.drawWaveform();
+
+      this.player.reversed
+        ? btnReverse.classList.add("choose")
+        : btnReverse.classList.remove("choose");
+    });
+
+    //ADSR enveloppe
+
+    //enable ADSR;
+    const envBtn = this.shadowRoot.querySelector("#envBtn");
+    const envKnobs = this.shadowRoot.querySelectorAll(".knobEnv");
+    //disable all knobs
+    envKnobs.forEach((envKnob) => {
+      envKnob.classList.add("element-disabled");
+    });
+    envBtn.disabled = true;
+    envBtn.classList.add("element-disabled");
+    envBtn.addEventListener("click", (e) => {
+      if (this.player == undefined) return;
+      if (!this.player.enableAdsr) {
+        envBtn.innerHTML = "Disable";
+        this.player.enableAdsr = true;
+        envBtn.classList.add("choose");
+        envKnobs.forEach((envKnob) => {
+          envKnob.classList.remove("element-disabled");
+        });
+      } else {
+        envBtn.innerHTML = "Enable";
+        this.player.enableAdsr = false;
+        envBtn.classList.remove("choose");
+        envKnobs.forEach((envKnob) => {
+          envKnob.classList.add("element-disabled");
+        });
+      }
+    });
+
+    //attack
+    this.shadowRoot
+      .querySelector("#knobAttack")
+      .addEventListener("input", (e) => {
+        if (this.player == undefined) return;
+        this.player.effects.attackValue = parseFloat(e.target.value);
+      });
+
+    //decay
+    this.shadowRoot
+      .querySelector("#knobDecay")
+      .addEventListener("input", (e) => {
+        if (this.player == undefined) return;
+        this.player.effects.decayValue = parseFloat(e.target.value);
+      });
+
+    //sustain
+    this.shadowRoot
+      .querySelector("#knobSustain")
+      .addEventListener("input", (e) => {
+        if (this.player == undefined) return;
+        this.player.effects.sustainValue = parseFloat(e.target.value);
+      });
+
+    //release
+    this.shadowRoot
+      .querySelector("#knobRelease")
+      .addEventListener("input", (e) => {
+        if (this.player == undefined) return;
+        this.player.effects.releaseValue = parseFloat(e.target.value);
+      });
+  }
+
+  //initialize knobs values
+  initKnobs() {
+    const effectKnobs = this.shadowRoot.querySelectorAll(".knob");
+    effectKnobs.forEach((effectKnob) => {
+      effectKnob.classList.add("element-disabled");
+    });
+
+    const btnReverse = this.shadowRoot.querySelector("#reverse");
+    btnReverse.disabled = true;
+    btnReverse.classList.remove("choose");
+
+    //ADSR;
+    const envBtn = this.shadowRoot.querySelector("#envBtn");
+    const envKnobs = this.shadowRoot.querySelectorAll(".knobEnv");
+    //disable all env knobs
+    envKnobs.forEach((envKnob) => {
+      envKnob.classList.add("element-disabled");
+    });
+    envBtn.disabled = true;
+    envBtn.classList.remove("choose");
+
+    this.shadowRoot.querySelector("#knob1").value = 0.5;
+    this.shadowRoot.querySelector("#knob2").value = 0;
+    this.shadowRoot.querySelector("#knob3").value = 0;
+    this.shadowRoot.querySelector("#knobPitch").value = 0;
+    this.shadowRoot.querySelector("#knobAttack").value = 0.2;
+    this.shadowRoot.querySelector("#knobDecay").value = 0.2;
+    this.shadowRoot.querySelector("#knobSustain").value = 1;
+    this.shadowRoot.querySelector("#knobRelease").value = 0.3;
+  }
+
+  setChoiceButtons() {
+    const knob = this.shadowRoot.querySelector("#choiceKnobs");
+    const explorer = this.shadowRoot.querySelector("#choiceExplorer");
+    const MIDI = this.shadowRoot.querySelector("#choiceMIDI");
+
+    const divKnob = this.shadowRoot.querySelector("#knobs");
+    const divExplorer = this.shadowRoot.querySelector("#explorer");
+    const divMIDI = this.shadowRoot.querySelector("#MIDI");
+
+    explorer.classList.add("choose");
+
+    divKnob.style.display = "none";
+    divExplorer.style.display = "inline-block";
+    divMIDI.style.display = "none";
+
+    knob.addEventListener("click", (e) => {
+      divKnob.style.display = "grid";
+      divExplorer.style.display = "none";
+      divMIDI.style.display = "none";
+
+      knob.classList.add("choose");
+      explorer.classList.remove("choose");
+      MIDI.classList.remove("choose");
+    });
+
+    explorer.addEventListener("click", (e) => {
+      divKnob.style.display = "none";
+      divExplorer.style.display = "inline-block";
+      divMIDI.style.display = "none";
+
+      knob.classList.remove("choose");
+      explorer.classList.add("choose");
+      MIDI.classList.remove("choose");
+    });
+
+    MIDI.addEventListener("click", (e) => {
+      divKnob.style.display = "none";
+      divExplorer.style.display = "none";
+      divMIDI.style.display = "flex";
+
+      knob.classList.remove("choose");
+      explorer.classList.remove("choose");
+      MIDI.classList.add("choose");
+    });
+  }
+
+  setApiKey() {
+    const apiKeyInput = this.shadowRoot.querySelector("#apiKey");
+    const save = this.shadowRoot.querySelector("#apiKeyButton");
+
+    // Get the API key from the localStorage
+    if (localStorage.getItem("apiKey") != null) {
+      this.apiKey = localStorage.getItem("apiKey");
+      apiKeyInput.value = this.apiKey;
+      save.classList.add("saved");
+    }
+
+    apiKeyInput.addEventListener("focus", (e) => {
+      save.classList.remove("saved");
+      //disable keyboard events for playin pads
+      this.enableKeyboard = false;
+    });
+
+    //add listeners on keyboard for typing api key
+    apiKeyInput.addEventListener("blur", (e) => {
+      this.enableKeyboard = true;
+      this.shadowRoot.querySelector("#sampler").focus();
+    });
+
+    // click on save button when press enter
+    apiKeyInput.addEventListener("keyup", (e) => {
+      if (e.code === "Enter") {
+        this.enableKeyboard = true;
+        save.click();
+        save.classList.add("saved");
+        apiKeyInput.blur();
+      }
+    });
+
+    save.addEventListener("click", (e) => {
+      this.apiKey = apiKeyInput.value;
+
+      // add the API key to the localStorage
+      localStorage.setItem("apiKey", this.apiKey);
+
+      save.classList.add("saved");
+    });
+  }
+
+  setLabel(index, b, defaultName) {
+    const label = this.shadowRoot.querySelector("#labelSampleName");
+    const input = this.shadowRoot.querySelector("#inputSampleName");
+    const buttonText = b.querySelector(".button_text");
+
+    if (buttonText) {
+      label.textContent = buttonText.textContent;
+    } else {
+      label.textContent = b.textContent;
+    }
+
+    label.style.cursor = "pointer";
+
+    if (!b) {
+      label.ondblclick = () => {
+        return;
+      };
+    } else {
+      if (
+        b.classList.contains("selected") &&
+        (b.classList.contains("resultButton") ||
+          b.nodeName === "WEBAUDIO-SWITCH")
+      ) {
+        label.ondblclick = () => {
+          if (!b.classList.contains("selected")) return;
+          label.style.display = "none";
+          input.value = label.textContent;
+          input.style.display = "inline-block";
+          input.style.outline = "none";
+          input.focus();
+        };
+
+        input.onblur = () => {
+          label.textContent = input.value;
+          if (b.classList.contains("resultButton")) {
+            if (label.textContent == "") label.textContent = defaultName;
+            b.textContent = label.textContent;
+          } else if (b.nodeName === "WEBAUDIO-SWITCH") {
+            if (label.textContent == "") {
+              label.textContent = SamplerHTMLElement.defaultName[index];
+            }
+            SamplerHTMLElement.name[index] = label.textContent;
+            const currentButtonText = b.querySelector(".button_text");
+            currentButtonText.innerHTML = SamplerHTMLElement.name[index];
+          }
+          label.style.display = "inline-block";
+          input.style.display = "none";
+          this.enableKeyboard = true;
+          //focus on the sampler element for event keyboard
+          this.shadowRoot.querySelector("#sampler").focus();
+        };
+
+        input.addEventListener("focus", (e) => {
+          this.enableKeyboard = false;
+          // if we press enter, we save the name
+          input.addEventListener("keyup", (e) => {
+            if (e.code === "Enter") {
+              this.enableKeyboard = true;
+              input.blur();
+            }
+          });
+        });
+      }
+    }
+  }
+
+  setExplorer() {
+    const search = this.shadowRoot.querySelector("#search");
+    const searchButton = this.shadowRoot.querySelector("#searchButton");
+    const time = this.shadowRoot.querySelector("#timeRange");
+    const results = this.shadowRoot.querySelector("#results");
+    const next = this.shadowRoot.querySelector("#nextPage");
+    const previous = this.shadowRoot.querySelector("#previousPage");
+
+    next.disabled = true;
+    previous.disabled = true;
+
+    // disable keyboard events for playin pads
+    search.addEventListener("focus", (e) => {
+      this.enableKeyboard = false;
+    });
+
+    // add listeners on keyboard for typing
+    search.addEventListener("blur", (e) => {
+      this.enableKeyboard = true;
+      this.shadowRoot.querySelector("#sampler").focus();
+    });
+
+    let option = "";
+    let numPage = 1;
+
+    time.innerHTML = 5;
+    time.value = 5;
+
+    // add time options from 1 to 5 seconds
+    for (let i = 1; i <= 5; i++) {
+      option = document.createElement("option");
+      option.value = i;
+      option.innerHTML = "< " + i + "s";
+      time.appendChild(option);
+    }
+
+    // add time options from 10 to 20 seconds
+    for (let i = 10; i <= 20; i += 5) {
+      option = document.createElement("option");
+      option.value = i;
+      option.innerHTML = "< " + i + "s";
+      time.appendChild(option);
+    }
+
+    // add time option for unlimited duration
+    option = document.createElement("option");
+    option.value = "unlimited";
+    option.innerHTML = "all";
+    time.appendChild(option);
+
+    // add listeners on next and previous buttons
+    next.addEventListener("click", (e) => {
+      numPage++;
+      searchButton.click();
+    });
+
+    previous.addEventListener("click", (e) => {
+      if (numPage > 1) {
+        numPage--;
+        searchButton.click();
+      }
+    });
+
+    // click on search button when press enter
+    search.addEventListener("keyup", (e) => {
+      if (e.code === "Enter") {
+        this.enableKeyboard = true;
+        searchButton.click();
+        search.blur();
+      }
+    });
+
+    searchButton.addEventListener("click", (e) => {
+      next.disabled = true;
+      previous.disabled = true;
+
+      searchButton.disabled = true;
+      searchButton.classList.remove("error");
+      searchButton.innerHTML = "Searching...";
+
+      results.classList.remove("error");
+      results.innerHTML = "";
+
+      this.stopAllSoundsExplorer();
+      this.explorerSamplePlayers = [];
+      let arrayOfSoundObjectURLs = [];
+
+      this.getSounds(search.value, numPage).then((arrayOfSoundIds) => {
+        arrayOfSoundIds.map((soundObject, index) => {
+          const id = soundObject[0];
+          const name = soundObject[1];
+          const urlOfSoundObject = `${this.apiUrl}/sounds/${id}/?token=${this.apiKey}`;
+
+          arrayOfSoundObjectURLs.push(urlOfSoundObject);
+        });
+
+        // use Promise.all to get all the sound objects
+        Promise.all(arrayOfSoundObjectURLs.map((url) => fetch(url)))
+          .then((responses) => Promise.all(responses.map((res) => res.json())))
+          .then((soundObjects) => {
+            // use Promise.all to get all the sound previews as mp3 files
+            const arrayOfSoundPreviews = soundObjects.map(
+              (soundObject) => soundObject.previews["preview-hq-mp3"]
+            );
+
+            arrayOfSoundPreviews.forEach((soundPreview, index) => {
+              this.setResultSound(
+                index,
+                arrayOfSoundIds[index][1],
+                arrayOfSoundPreviews[index]
+              );
+            });
+
+            let bl = new BufferLoader(
+              this.plugin.audioContext,
+              arrayOfSoundPreviews,
+              this.shadowRoot,
+              (bufferList) => {
+                // when all sounds are loaded, we store them in an array
+                this.decodedSounds = bufferList;
+                this.explorerDecodedSounds = bufferList;
+
+                // For each sounds we create a SamplePlayer
+                this.decodedSounds.forEach((decodedSound, index) => {
+                  this.explorerSamplePlayers[index] = new SamplePlayer(
+                    this.plugin.audioContext,
+                    this.canvas,
+                    this.canvasOverlay,
+                    "orange",
+                    decodedSound,
+                    this.plugin.audioNode,
+                    0
+                  );
+
+                  const b = this.shadowRoot.querySelector("#result" + index);
+
+                  // add the class 'set' to the button
+                  b.classList.add("set");
+                  // add draggable attribute to the button for drag and drop events
+                  b.setAttribute("draggable", "true");
+
+                  window.requestAnimationFrame(this.handleAnimationFrame);
+                });
+              }
+            );
+
+            bl.loadExplorer();
+
+            if (!searchButton.classList.contains("error")) {
+              searchButton.textContent = "Search";
+            } else {
+              searchButton.textContent = "Error";
+            }
+            next.disabled = false;
+            if (numPage > 1) {
+              previous.disabled = false;
+            }
+            searchButton.disabled = false;
+          });
+      });
+    });
+  }
+
+  getSounds(queryText, nbPage) {
+    let time = this.shadowRoot.querySelector("#timeRange").value;
+    const searchButton = this.shadowRoot.querySelector("#searchButton");
+    const results = this.shadowRoot.querySelector("#results");
+
+    let url = "";
+
+    if (time === "unlimited") {
+      url = `${this.apiUrl}/search/text/?query=${queryText}&token=${this.apiKey}&page_size=9&page=${nbPage}`;
+    } else {
+      url = `${this.apiUrl}/search/text/?query=${queryText}&token=${this.apiKey}&page_size=9&page=${nbPage}&filter=duration:[0.0 TO ${time}.0]`;
+    }
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", url);
+    xhr.responseType = "json";
+
+    return new Promise((resolve, reject) => {
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            const arrayOfSoundIdsAndNames = xhr.response.results.map(
+              (sound) => [sound.id, sound.name]
+            );
+            resolve(arrayOfSoundIdsAndNames);
+          } else if (xhr.status === 401) {
+            if (!searchButton.classList.contains("error")) {
+              searchButton.classList.add("error");
+              searchButton.textContent = "Error";
+            }
+            searchButton.disabled = false;
+
+            results.classList.add("error");
+            results.innerHTML =
+              "Unauthorized : " +
+              xhr.response.detail +
+              "<br><br>Please check your API key.";
+            reject(new Error("Unauthorized : " + xhr.response.detail));
+          } else if (xhr.status === 404) {
+            if (!searchButton.classList.contains("error")) {
+              searchButton.classList.add("error");
+              searchButton.textContent = "Error";
+            }
+            searchButton.disabled = false;
+
+            results.classList.add("error");
+            results.innerHTML = "Sounds not found : " + xhr.response.detail;
+            reject(new Error("Sounds not found : " + xhr.response.detail));
+          } else if (xhr.status === 429) {
+            if (!searchButton.classList.contains("error")) {
+              searchButton.classList.add("error");
+              searchButton.textContent = "Error";
+            }
+            searchButton.disabled = false;
+
+            results.classList.add("error");
+            results.innerHTML = "Too many requests : " + xhr.response.detail;
+            reject(new Error("Too many requests : " + xhr.response.detail));
+          } else {
+            if (!searchButton.classList.contains("error")) {
+              searchButton.classList.add("error");
+              searchButton.textContent = "Error";
+            }
+            searchButton.disabled = false;
+
+            results.classList.add("error");
+            results.innerHTML = "Failed to get sounds : " + xhr.response.detail;
+            reject(new Error("Failed to get sounds : " + xhr.response.detail));
+          }
+        }
+      };
+      xhr.send();
+    });
+  }
+
+  setAllDragAndDrop() {
+    this.shadowRoot.querySelectorAll(".switchpad").forEach((b) => {
+      //b.setAttribute('draggable', true);
+
+      b.addEventListener("dragstart", (e) => {
+        e.stopPropagation();
+        e.dataTransfer.setData("id", e.target.id);
+      });
+
+      b.addEventListener("dragover", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+      });
+
+      b.addEventListener("dragmove", (e) => {
+        e.preventDefault();
+      });
+
+      b.addEventListener("drop", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        let btnTargetId;
+
+        btnTargetId = e.target.id;
+
+        const dropIndex = btnTargetId;
+        const dragIndex = e.dataTransfer.getData("id");
+        const dropUrl = e.dataTransfer.getData("url");
+
+        if (dragIndex.startsWith("switchpad")) {
+          if (dragIndex != dropIndex) {
+            this.swapSample(dragIndex, dropIndex);
+          }
+        } else if (dragIndex.startsWith("result")) {
+          this.addSampleToPad(dragIndex, dropIndex, dropUrl);
+        }
+      });
+
+      b.addEventListener("dragend", (e) => {
+        let target = e.target;
+        if (!e.target.classList.contains("switchpad"))
+          target = e.target.parentNode;
+        target.setValue(0, true);
+        e.preventDefault();
+      });
+    });
+  }
+
+  swapSample = (index1, index2) => {
+    // we get the index number
+    const numberRegex = /\d+/g;
+    if (typeof index1 === "string" && typeof index2 === "string") {
+      index1 = index1.match(numberRegex)[0];
+      index2 = index2.match(numberRegex)[0];
+    }
+
+    if (index1 === index2) return;
+
+    const div1 = this.shadowRoot.querySelector("#p" + index1);
+    const div2 = this.shadowRoot.querySelector("#p" + index2);
+
+    // remove the button delete if it exists
+    if (div1.querySelector(".deleteSample")) {
+      div1.querySelector(".deleteSample").remove();
+    }
+
+    if (div2.querySelector(".deleteSample")) {
+      div2.querySelector(".deleteSample").remove();
+    }
+
+    // set the correct id
+    div1.querySelector(".switchpad").id = "switchpad" + index1;
+    div2.querySelector(".switchpad").id = "switchpad" + index2;
+
+    const button1 = this.shadowRoot.querySelector("#switchpad" + index1);
+    const button2 = this.shadowRoot.querySelector("#switchpad" + index2);
+
+    if (!button1.classList.contains("selected")) return;
+
+    //swap progress bar
+    const progressPad1 = div1.querySelector("#progress" + index1);
+    const progressPad2 = div2.querySelector("#progress" + index2);
+    const clonedProgress1 = progressPad1.cloneNode(true);
+    const clonedProgress2 = progressPad2.cloneNode(true);
+    div1.replaceChild(clonedProgress2, progressPad1);
+    div2.replaceChild(clonedProgress1, progressPad2);
+    div1.querySelector(".padprogress").id = "progress" + index1;
+    div2.querySelector(".padprogress").id = "progress" + index2;
+
+    if (SamplerHTMLElement.URLs[index2] === undefined) {
+      SamplerHTMLElement.URLs[index2] = "";
+    }
+    if (SamplerHTMLElement.URLs[index1] === undefined) {
+      SamplerHTMLElement.URLs[index1] = "";
+    }
+
+    if (SamplerHTMLElement.name[index2] === undefined) {
+      SamplerHTMLElement.name[index2] = "";
+    }
+    if (SamplerHTMLElement.name[index1] === undefined) {
+      SamplerHTMLElement.name[index1] = "";
+    }
+
+    //Swap urls
+    const tempURL = SamplerHTMLElement.URLs[index1];
+    SamplerHTMLElement.URLs[index1] = SamplerHTMLElement.URLs[index2];
+    SamplerHTMLElement.URLs[index2] = tempURL;
+
+    //Swap names
+    const tempName = SamplerHTMLElement.name[index1];
+    SamplerHTMLElement.name[index1] = SamplerHTMLElement.name[index2];
+    SamplerHTMLElement.name[index2] = tempName;
+
+    //Swap default names
+    const tempDefaultName = SamplerHTMLElement.defaultName[index1];
+    SamplerHTMLElement.defaultName[index1] =
+      SamplerHTMLElement.defaultName[index2];
+    SamplerHTMLElement.defaultName[index2] = tempDefaultName;
+
+    // Swap SamplePlayers
+    const tempPlayer = this.samplePlayers[index1];
+    this.samplePlayers[index1] = this.samplePlayers[index2];
+    this.samplePlayers[index2] = tempPlayer;
+
+    if (!button1.querySelector(".button_text")) {
+      const buttonText = document.createElement("p");
+      buttonText.classList.add("button_text");
+      buttonText.id = "button_text" + index1;
+      button1.innerHTML = "";
+      button1.appendChild(buttonText);
+    }
+
+    if (!button2.querySelector(".button_text")) {
+      const buttonText = document.createElement("p");
+      buttonText.classList.add("button_text");
+      buttonText.id = "button_text" + index2;
+      button2.innerHTML = "";
+      button2.appendChild(buttonText);
+    }
+
+    if (!button1.classList.contains("set")) {
+      this.setSwitchPad(index1);
+      button1.classList.remove("selected");
+    }
+
+    if (!button2.classList.contains("set")) {
+      this.setSwitchPad(index2);
+      this.setLabel(index2, button2);
+      button2.classList.add("selected");
+    }
+
+    this.setDefaultPadKeyValue(index1);
+    this.setDefaultPadKeyValue(index2);
+  };
+
+  addSampleToPad = (index1, index2, url) => {
+    this.stopAllSoundsExplorer();
+
+    //get the index number
+    const numberRegex = /\d+/g;
+    index1 = index1.match(numberRegex)[0];
+    index2 = index2.match(numberRegex)[0];
+
+    const div1 = this.shadowRoot.querySelector("#resultExplorer" + index1);
+    const div2 = this.shadowRoot.querySelector("#p" + index2);
+
+    const padElement = div2.children[0].tagName;
+
+    if (div2.querySelector(".deleteSample")) {
+      div2.querySelector(".deleteSample").remove();
+    }
+
+    const button = div1.querySelector(".resultButton");
+
+    //clone progress bar
+    const progressExplorer = div1.querySelector(".progressExplorer");
+    const progressPad = div2.querySelector(".padprogress");
+    const newProgressPad = progressExplorer.cloneNode(true);
+    div2.replaceChild(newProgressPad, progressPad);
+    newProgressPad.classList.replace("progressExplorer", "padprogress");
+    newProgressPad.id = "progress" + index2;
+
+    // get the url of the sound back
+    SamplerHTMLElement.URLs[index2] = url;
+
+    // get the name of the sound back
+    SamplerHTMLElement.name[index2] = button.innerHTML;
+    SamplerHTMLElement.defaultName[index2] = button.innerHTML;
+
+    //recreate a new SamplePlayer independant of the explorer
+    this.samplePlayers[index2] = new SamplePlayer(
+      this.plugin.audioContext,
+      this.canvas,
+      this.canvasOverlay,
+      "orange",
+      this.explorerDecodedSounds[index1],
+      this.plugin.audioNode,
+      0
+    );
+
+    // set pads
+    if (padElement === "WEBAUDIO-SWITCH") {
+      this.setSwitchPad(index2);
+      const padBtn = this.shadowRoot.querySelector("#switchpad" + index2);
+      this.setLabel(index2, padBtn);
+
+      //Remove selected class from all switchpad
+      const switchPads = this.shadowRoot.querySelectorAll(".switchpad");
+      switchPads.forEach((switchPad) => {
+        switchPad.classList.remove("selected");
+      });
+
+      padBtn.classList.add("selected");
+    }
+
+    // update player
+    this.player = this.samplePlayers[index2];
+    this.shadowRoot.querySelector("#labelSampleName").innerHTML =
+      button.innerHTML;
+    this.player.drawWaveform();
+
+    //set default keyboard value for playing pads
+    this.setDefaultPadKeyValue(index2);
+  };
+
+  stopAllSoundsPads = () => {
+    for (let i = 0; i < this.samplePlayers.length; i++) {
+      if (this.samplePlayers[i] != null) {
+        this.samplePlayers[i].stop();
+        if (
+          this.samplePlayers[i].classList &&
+          this.samplePlayers[i].classList.contains("selected")
+        )
+          this.samplePlayers[i].classList.remove("selected");
+      }
+    }
+  };
+
+  stopAllSoundsExplorer = () => {
+    for (let i = 0; i < this.explorerSamplePlayers.length; i++) {
+      if (this.explorerSamplePlayers[i] != null) {
+        this.explorerSamplePlayers[i].stop();
+        // this.exporterSamplePLayers[i].classList.remove('selected');
+      }
+    }
+  };
+
+  setResultSound = (index, name, url) => {
+    // add a div resultExplorer for each sound
+    const div = document.createElement("div");
+    div.classList.add("resultExplorer");
+    div.id = "resultExplorer" + index;
+    this.shadowRoot.querySelector("#results").appendChild(div);
+
+    // add a button for each sound
+    const b = document.createElement("button");
+    b.classList.add("resultButton");
+    b.id = "result" + index;
+    let defaultName = name;
+    b.innerHTML = name;
+    b.addEventListener("click", (e) => {
+      // if the sound is loaded
+      if (this.explorerSamplePlayers[index] != null) {
+        this.stopAllSoundsPads();
+        this.stopAllSoundsExplorer();
+
+        this.player = this.explorerSamplePlayers[index];
+        this.shadowRoot.querySelector("#labelSampleName").innerHTML =
+          b.innerHTML.split("<")[0];
+        this.player.drawWaveform();
+        this.player.play();
+        b.classList.add("active");
+        setTimeout(() => {
+          b.classList.remove("active");
+        }, 100);
+
+        // remove the class 'selected' from all the buttons
+        const buttons = this.shadowRoot.querySelectorAll(".padbutton");
+        buttons.forEach((button) => {
+          button.classList.remove("selected");
+        });
+
+        //Remove selected class from all switchpad
+        const switchPads = this.shadowRoot.querySelectorAll(".switchpad");
+        switchPads.forEach((switchPad) => {
+          switchPad.classList.remove("selected");
+        });
+
+        // remove the class 'selected' from all the buttons of the explorer
+        const buttonsExplorer =
+          this.shadowRoot.querySelectorAll(".resultButton");
+        buttonsExplorer.forEach((button) => {
+          button.classList.remove("selected");
+        });
+
+        //Disable create NoteSet
+        this.shadowRoot.querySelector("#createNoteSet").disabled = true;
+        this.shadowRoot
+          .querySelector("#createNoteSet")
+          .classList.add("element-disabled");
+
+        // add the class 'selected' to the button
+        b.classList.add("selected");
+
+        this.setLabel(index, b, defaultName);
+      }
+    });
+
+    b.addEventListener("dragstart", (e) => {
+      e.dataTransfer.setData("id", e.target.id);
+      e.dataTransfer.setData("url", url);
+    });
+
+    b.addEventListener("dragover", (e) => {
+      e.preventDefault();
+    });
+
+    b.addEventListener("dragend", (e) => {
+      e.preventDefault();
+    });
+
+    // add the button to the div
+    this.shadowRoot.querySelector("#resultExplorer" + index).appendChild(b);
+
+    // add a progress bar for each sound
+    const progressExplorer = document.createElement("progress");
+    progressExplorer.classList.add("progressExplorer");
+    progressExplorer.id = "progressExplorer" + index;
+    progressExplorer.value = 0;
+    progressExplorer.max = 1;
+    this.shadowRoot
+      .querySelector("#resultExplorer" + index)
+      .appendChild(progressExplorer);
+  };
+
+  setDefaultPadsKeyValue() {
+    const switchPads = this.shadowRoot.querySelectorAll(".switchpad");
+    for (let i = 0; i < switchPads.length; i++) {
+      const switchPad = this.shadowRoot.querySelector("#switchpad" + i);
+      if (switchPad.querySelector(".button_key_text")) return;
+      const buttonKeyValue = document.createElement("div");
+      buttonKeyValue.classList.add("button_key_text");
+      buttonKeyValue.id = "button_key_text" + i;
+      const keyArr = [
+        "W/Z",
+        "X",
+        "C",
+        "V",
+        "Q/A",
+        "S",
+        "D",
+        "F",
+        "A/Q",
+        "Z/W",
+        "E",
+        "R",
+        "1",
+        "2",
+        "3",
+        "4",
+      ];
+      buttonKeyValue.innerHTML = keyArr[i];
+      switchPad.appendChild(buttonKeyValue);
+    }
+  }
+
+  setDefaultPadKeyValue(index) {
+    const switchPad = this.shadowRoot.querySelector("#switchpad" + index);
+    const buttonKeyValue = document.createElement("div");
+    if (switchPad.querySelector(".button_key_text")) return;
+    buttonKeyValue.classList.add("button_key_text");
+    buttonKeyValue.id = "button_key_text" + index;
+    const keyArr = [
+      "W/Z",
+      "X",
+      "C",
+      "V",
+      "Q/A",
+      "S",
+      "D",
+      "F",
+      "A/Q",
+      "Z/W",
+      "E",
+      "R",
+      "1",
+      "2",
+      "3",
+      "4",
+    ];
+    buttonKeyValue.innerHTML = keyArr[index];
+    switchPad.appendChild(buttonKeyValue);
+  }
+
+  setMidiNoteName(index, noteValue, noteName) {
+    if (!noteValue) return;
+    const switchPad = this.shadowRoot.querySelector("#switchpad" + index);
+    const PadMidiNoteValue = document.createElement("div");
+    PadMidiNoteValue.classList.add("button_midi_note");
+    PadMidiNoteValue.id = "button_midi_note" + index;
+
+    //convert midi note value to midi note name
+    const midiNotes = [
+      "A0",
+      "A#0",
+      "B0",
+      "C1",
+      "C#1",
+      "D1",
+      "D#1",
+      "E1",
+      "F1",
+      "F#1",
+      "G1",
+      "G#1",
+      "A1",
+      "A#1",
+      "B1",
+      "C2",
+      "C#2",
+      "D2",
+      "D#2",
+      "E2",
+      "F2",
+      "F#2",
+      "G2",
+      "G#2",
+      "A2",
+      "A#2",
+      "B2",
+      "C3",
+      "C#3",
+      "D3",
+      "D#3",
+      "E3",
+      "F3",
+      "F#3",
+      "G3",
+      "G#3",
+      "A3",
+      "A#3",
+      "B3",
+      "C4",
+      "C#4",
+      "D4",
+      "D#4",
+      "E4",
+      "F4",
+      "F#4",
+      "G4",
+      "G#4",
+      "A4",
+      "A#4",
+      "B4",
+      "C5",
+      "C#5",
+      "D5",
+      "D#5",
+      "E5",
+      "F5",
+      "F#5",
+      "G5",
+      "G#5",
+      "A5",
+      "A#5",
+      "B5",
+      "C6",
+      "C#6",
+      "D6",
+      "D#6",
+      "E6",
+      "F6",
+      "F#6",
+      "G6",
+      "G#6",
+      "A6",
+      "A#6",
+      "B6",
+      "C7",
+      "C#7",
+      "D7",
+      "D#7",
+      "E7",
+      "F7",
+      "F#7",
+      "G7",
+      "G#7",
+      "A7",
+      "A#7",
+      "B7",
+      "C8",
+      "C#8",
+      "D8",
+      "D#8",
+      "E8",
+      "F8",
+      "F#8",
+      "G8",
+      "G#8",
+      "A8",
+      "A#8",
+      "B8",
+      "C9",
+      "C#9",
+      "D9",
+      "D#9",
+      "E9",
+      "F9",
+      "F#9",
+      "G9",
+      "G#9",
+    ];
+    //A0 = 21
+    let newNoteValue = noteValue - 21;
+    if (!noteName) {
+      noteName = midiNotes[newNoteValue];
+    }
+    PadMidiNoteValue.innerHTML = noteName;
+    if (!switchPad.querySelector(".button_midi_note")) {
+      switchPad.appendChild(PadMidiNoteValue);
+    } else {
+      switchPad.replaceChild(
+        PadMidiNoteValue,
+        switchPad.querySelector(".button_midi_note")
+      );
+    }
+  }
+
+  setNoteValue(index, noteName) {
+    const switchPad = this.shadowRoot.querySelector("#switchpad" + index);
+    //convert midi note name to midi note value
+    const midiNotes = [
+      "A0",
+      "A#0",
+      "B0",
+      "C1",
+      "C#1",
+      "D1",
+      "D#1",
+      "E1",
+      "F1",
+      "F#1",
+      "G1",
+      "G#1",
+      "A1",
+      "A#1",
+      "B1",
+      "C2",
+      "C#2",
+      "D2",
+      "D#2",
+      "E2",
+      "F2",
+      "F#2",
+      "G2",
+      "G#2",
+      "A2",
+      "A#2",
+      "B2",
+      "C3",
+      "C#3",
+      "D3",
+      "D#3",
+      "E3",
+      "F3",
+      "F#3",
+      "G3",
+      "G#3",
+      "A3",
+      "A#3",
+      "B3",
+      "C4",
+      "C#4",
+      "D4",
+      "D#4",
+      "E4",
+      "F4",
+      "F#4",
+      "G4",
+      "G#4",
+      "A4",
+      "A#4",
+      "B4",
+      "C5",
+      "C#5",
+      "D5",
+      "D#5",
+      "E5",
+      "F5",
+      "F#5",
+      "G5",
+      "G#5",
+      "A5",
+      "A#5",
+      "B5",
+      "C6",
+      "C#6",
+      "D6",
+      "D#6",
+      "E6",
+      "F6",
+      "F#6",
+      "G6",
+      "G#6",
+      "A6",
+      "A#6",
+      "B6",
+      "C7",
+      "C#7",
+      "D7",
+      "D#7",
+      "E7",
+      "F7",
+      "F#7",
+      "G7",
+      "G#7",
+      "A7",
+      "A#7",
+      "B7",
+      "C8",
+      "C#8",
+      "D8",
+      "D#8",
+      "E8",
+      "F8",
+      "F#8",
+      "G8",
+      "G#8",
+      "A8",
+      "A#8",
+      "B8",
+      "C9",
+      "C#9",
+      "D9",
+      "D#9",
+      "E9",
+      "F9",
+      "F#9",
+      "G9",
+      "G#9",
+    ];
+    const noteValue = midiNotes.indexOf(noteName) + 21;
+
+    this.setMidiNoteName(index, noteValue, noteName);
+
+    switchPad.midiController.cc = noteValue;
+    switchPad.midiController.channel = 0;
+  }
+
+  updateMidiNoteValue(noteValue) {
+    const preset = this.shadowRoot.querySelector("#selectPreset").value;
+    let menu = document.getElementById("webaudioctrl-context-menu");
+    let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
+    let listMidiLearn = JSON.parse(stockMidiLearn);
+
+    //if pad is learning....
+    if (menu.knob && menu.knob.checked) {
+      //if another pad has already this midi note value, remove the previous midi learn
+      if (listMidiLearn.find((element) => element.cc.cc === noteValue)) {
+        let filterList = listMidiLearn.filter(
+          (element) => element.cc.cc === noteValue
+        );
+        let filterListPresets;
+        //if there is more than one pad with this midi note value or if the pad is already assigned to this midi note value, remove the previous midi learn
+        if (filterList.length > 1) {
+          filterList = filterList.filter(
+            (element) => element.id != menu.knob.id
+          );
+          filterList.map((element) => {
+            element.cc = {};
+          });
+          const switchPadsId = filterList.map((element) => element.id);
+          const switchPads = switchPadsId.map((element) =>
+            this.shadowRoot.querySelector("#" + element)
+          );
+          switchPads.forEach((switchPad) => {
+            switchPad.midiController = {};
+            if (switchPad.querySelector(".button_midi_note")) {
+              switchPad.querySelector(".button_midi_note").remove();
+            }
+            switchPad.setValue(0);
+          });
+        }
+        localStorage.setItem(
+          "WebAudioControlsMidiLearn",
+          JSON.stringify(listMidiLearn)
+        );
+      }
+    }
+    menu.onclick = (e) => {
+      const switchPad = menu.knob.id;
+      const switchPadNote = menu.knob.midiController.cc;
+      //get current Preset
+      const preset = this.shadowRoot.querySelector("#selectPreset").value;
+
+      let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
+      let listMidiLearn = JSON.parse(stockMidiLearn);
+
+      if (!listMidiLearn) return;
+
+      if (!switchPadNote) {
+        if (menu.knob.querySelector(".button_midi_note")) {
+          menu.knob.querySelector(".button_midi_note").remove();
+        }
+      }
+    };
+
+    this.clearAllMidiLearning();
+    this.resetAllMidiLearning();
+    const defaultMidiLearnBtn =
+      this.shadowRoot.querySelector("#defaultMidiLearn");
+    defaultMidiLearnBtn.onclick = () => {
+      let manualClick = true;
+      this.defaultMidiMapping(manualClick);
+    };
+  }
+
+  clearAllMidiLearning() {
+    const clearBtn = this.shadowRoot.querySelector("#clearMidiLearn");
+    clearBtn.onclick = () => {
+      const switchpads = this.shadowRoot.querySelectorAll(".switchpad");
+      switchpads.forEach((switchpad) => {
+        switchpad.midiController = {};
+        if (switchpad.querySelector(".button_midi_note")) {
+          switchpad.querySelector(".button_midi_note").remove();
+        }
+      });
+      let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
+      let listMidiLearn = JSON.parse(stockMidiLearn);
+      listMidiLearn.map((element) => {
+        element.cc = {};
+      });
+      localStorage.setItem(
+        "WebAudioControlsMidiLearn",
+        JSON.stringify(listMidiLearn)
+      );
+    };
+  }
+
+  resetAllMidiLearning() {
+    //if there is a preset saved with midi learns, reset all midi learns to the swtichpads
+    const resetBtn = this.shadowRoot.querySelector("#resetMidiLearn");
+    resetBtn.onclick = () => {
+      const currentPreset =
+        this.shadowRoot.querySelector("#selectPreset").value;
+      const switchpads = this.shadowRoot.querySelectorAll(".switchpad");
+      if (
+        localStorage.presets &&
+        PresetManager.getMidiLearnListFromCurrentPreset(currentPreset)
+      ) {
+        PresetManager.loadMidiControllerFromCurrentPreset(
+          currentPreset,
+          switchpads
+        );
+
+        switchpads.forEach((switchpad) => {
+          const index = switchpad.id.match(/\d+/g)[0];
+          // if(!switchpad.querySelector('.button_midi_note')){
+          const currentMidiLearn = PresetManager.getMidiLearnFromCurrentPreset(
+            currentPreset,
+            switchpad.id
+          );
+          if (currentMidiLearn.cc.cc === undefined) {
+            if (switchpad.querySelector(".button_midi_note")) {
+              switchpad.querySelector(".button_midi_note").remove();
+            }
+          }
+          this.setMidiNoteName(index, currentMidiLearn.cc.cc);
+        });
+      } else {
+        this.defaultMidiMapping();
+      }
+    };
+  }
+
+  defaultMidiMapping(manualClick) {
+    const switchPads = this.shadowRoot.querySelectorAll(".switchpad");
+    // !!! Set here the default root midi note for the first switchpad !!!
+    const defaultRootMidiNote = 60; // 60 is C4
+    let midiLearnList = [];
+    const preset = this.shadowRoot.querySelector("#selectPreset").value;
+    PresetManager.setDefaultMidiMapping(
+      preset,
+      switchPads,
+      defaultRootMidiNote
+    );
+    if (localStorage.presets && !manualClick) {
+      if (PresetManager.getMidiLearnListFromCurrentPreset(preset)) {
+        const midiList =
+          PresetManager.getMidiLearnListFromCurrentPreset(preset);
+        midiList.forEach((midi) => {
+          if (midi.id.includes("switchpad")) {
+            this.setMidiNoteName(midi.id.match(/\d+/g)[0], midi.cc.cc);
+          }
+        });
+      } else {
+        switchPads.forEach((switchPad) => {
+          // switchPad.midiController = {};
+          const index = switchPad.id.match(/\d+/g)[0];
+          this.setMidiNoteName(index, defaultRootMidiNote + parseInt(index));
+          midiLearnList.push({
+            id: switchPad.id,
+            cc: { cc: defaultRootMidiNote + parseInt(index), channel: 0 },
+          });
+          if (switchPad.midiController) {
+            switchPad.midiController.channel = 0;
+            switchPad.midiController.cc = defaultRootMidiNote + parseInt(index);
+          }
+        });
+      }
+    } else if (localStorage.WebAudioControlsMidiLearn) {
+      midiLearnList = JSON.parse(localStorage.WebAudioControlsMidiLearn);
+      switchPads.forEach((switchPad) => {
+        const index = switchPad.id.match(/\d+/g)[0];
+        this.setMidiNoteName(index, defaultRootMidiNote + parseInt(index));
+        const currentMidiLearn = midiLearnList.find(
+          (element) => element.id == switchPad.id
+        );
+        currentMidiLearn.cc.channel = 0;
+        currentMidiLearn.cc.cc = defaultRootMidiNote + parseInt(index);
+        if (switchPad.midiController) {
+          switchPad.midiController.cc = currentMidiLearn.cc.cc;
+          switchPad.midiController.channel = currentMidiLearn.cc.channel;
+        }
+      });
+    } else {
+      switchPads.forEach((switchPad) => {
+        const index = switchPad.id.match(/\d+/g)[0];
+        this.setMidiNoteName(index, defaultRootMidiNote + parseInt(index));
+        midiLearnList.push({
+          id: switchPad.id,
+          cc: { cc: defaultRootMidiNote + parseInt(index), channel: 0 },
+        });
+        if (switchPad.midiController) {
+          switchPad.midiController.cc = defaultRootMidiNote + parseInt(index);
+          switchPad.midiController.channel = 0;
+        }
+      });
+    }
+    if (midiLearnList.length > 0) {
+      localStorage.setItem(
+        "WebAudioControlsMidiLearn",
+        JSON.stringify(midiLearnList)
+      );
+    }
+  }
+
+  setSwitchPad(index) {
+    const switchPad = this.shadowRoot.querySelector("#switchpad" + index);
+    const preset = this.shadowRoot.querySelector("#selectPreset").value;
+
+    const buttonText = document.createElement("p");
+
+    if (
+      SamplerHTMLElement.URLs[index].includes("http") &&
+      SamplerHTMLElement.name[index]
+    ) {
+      buttonText.innerHTML = SamplerHTMLElement.name[index];
+    }
+
+    //add p text element
+    buttonText.classList.add("button_text");
+    buttonText.id = "button_text" + index;
+    //buttonText.innerHTML = switchPad.textContent;
+    switchPad.innerHTML = "";
+    switchPad.appendChild(buttonText);
+
+    // Add a button to delete the sample in the top right corner
+    if (buttonText && buttonText.innerHTML !== "") {
+      const deleteSample = document.createElement("button");
+      deleteSample.classList.add("deleteSample");
+      deleteSample.id = "deleteSample" + index;
+      deleteSample.innerHTML = "X";
+      deleteSample.onmousedown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.button == 2) {
+          e.preventDefault();
+          return;
+        }
+        this.deleteSample(index);
+      };
+      switchPad.appendChild(deleteSample);
+    }
+
+    //play sample
+    switchPad.onmousedown = (e) => {
+      //disable right click
+      if (e.button == 2) {
+        e.preventDefault();
+        return;
+      }
+
+      if (this.player != this.samplePlayers[index]) {
+        this.player = this.samplePlayers[index];
+      }
+
+      if (!this.player) {
+        return;
+      }
+
+      this.setKnobsEffects();
+
+      // Display the name of the sample above the waveform
+      this.shadowRoot.querySelector("#labelSampleName").innerHTML =
+        switchPad.innerHTML.split("<")[0];
+      this.player.drawWaveform();
+
+      //stop the previous sound if it's playing
+      this.player.stop();
+
+      //play the sample
+      this.player.play();
+
+      // remove the class 'selected' from all the buttons
+      const buttons = this.shadowRoot.querySelectorAll(".padbutton");
+      buttons.forEach((button) => {
+        button.classList.remove("selected");
+      });
+
+      //Remove selected class from all switchpad
+      const switchPads = this.shadowRoot.querySelectorAll(".switchpad");
+      switchPads.forEach((switchPad) => {
+        switchPad.classList.remove("selected");
+      });
+
+      // remove the class 'selected' from all the buttons of the explorer
+      const buttonsExplorer = this.shadowRoot.querySelectorAll(".resultButton");
+      buttonsExplorer.forEach((button) => {
+        button.classList.remove("selected");
+      });
+
+      // add 'selected' class to the pad
+      switchPad.classList.add("selected");
+
+      //we can now rename the sample
+      this.setLabel(index, switchPad);
+    };
+
+    const currentPreset = this.shadowRoot.querySelector("#selectPreset").value;
+
+    if (localStorage.WebAudioControlsMidiLearn) {
+      let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
+      let listMidiLearn = JSON.parse(stockMidiLearn);
+      const currentMidiLearn = listMidiLearn.find(
+        (element) => element.id == switchPad.id
+      );
+      this.setMidiNoteName(index, currentMidiLearn.cc.cc);
+      return;
+    } else if (
+      localStorage.presets &&
+      PresetManager.getMidiLearnListFromCurrentPreset(currentPreset)
+    ) {
+      const currentMidiLearn = PresetManager.getMidiLearnFromCurrentPreset(
+        currentPreset,
+        switchPad.id
+      );
+      if (currentMidiLearn === undefined) return;
+      this.setMidiNoteName(index, currentMidiLearn.cc.cc);
+    }
+  }
+
+  setKnobsEffects() {
+    // enable effects knobs
+    const effectKnobs = this.shadowRoot.querySelectorAll(".knob");
+    effectKnobs.forEach((effectKnob) => {
+      effectKnob.classList.remove("element-disabled");
+    });
+
+    // set effects knobs to current values
+    this.shadowRoot.querySelector("#knob1").value =
+      this.player.effects.volumeGain;
+    this.shadowRoot.querySelector("#knob2").value = this.player.effects.pan;
+    this.shadowRoot.querySelector("#knob3").value =
+      this.player.effects.toneValue;
+
+    //pitch
+    this.shadowRoot.querySelector("#knobPitch").value = this.player.semitones;
+
+    const btnReverse = this.shadowRoot.querySelector("#reverse");
+    btnReverse.disabled = false;
+    btnReverse.classList.remove("element-disabled");
+
+    btnReverse.value = this.player.reverseValue;
+    this.player.reversed
+      ? btnReverse.classList.add("choose")
+      : btnReverse.classList.remove("choose");
+
+    //adsr
+    this.shadowRoot.querySelector("#knobAttack").value =
+      this.player.effects.attackValue;
+    this.shadowRoot.querySelector("#knobDecay").value =
+      this.player.effects.decayValue;
+    this.shadowRoot.querySelector("#knobSustain").value =
+      this.player.effects.sustainValue;
+    this.shadowRoot.querySelector("#knobRelease").value =
+      this.player.effects.releaseValue;
+
+    const envBtn = this.shadowRoot.querySelector("#envBtn");
+    const envKnobs = this.shadowRoot.querySelectorAll(".knobEnv");
+    envBtn.disabled = false;
+    envBtn.classList.remove("element-disabled");
+    envKnobs.forEach((envKnob) => {
+      envKnob.classList.remove("element-disabled");
+    });
+
+    if (!this.player.enableAdsr) {
+      envBtn.innerHTML = "Enable";
+      envBtn.classList.remove("choose");
+      envKnobs.forEach((envKnob) => {
+        envKnob.classList.add("element-disabled");
+      });
+    } else {
+      envBtn.innerHTML = "Disable";
+      envBtn.classList.add("choose");
+      envKnobs.forEach((envKnob) => {
+        envKnob.classList.remove("element-disabled");
+      });
+    }
+  }
+
+  deleteSample(index) {
+    const deleteSample = this.shadowRoot.querySelector("#deleteSample" + index);
+    const b = this.shadowRoot.querySelector("#switchpad" + index);
+    const midiLearnText = b.querySelector(".button_midi_note");
+
+    // remove the click of the delete button
+    b.removeChild(deleteSample);
+
+    // Put back the value of the progress bar to 0
+    const progressBar = this.shadowRoot.querySelector("#progress" + index);
+    progressBar.value = 0;
+
+    // Delete click listener
+    b.onmousedown = null;
+
+    // Stop samplePlayer
+    this.samplePlayers[index].stop();
+
+    // if the pad is the current pad selected, remove the canvas
+    if (b.classList.contains("selected")) {
+      this.canvasContext.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.canvasContextOverlay.clearRect(
+        0,
+        0,
+        this.canvas.width,
+        this.canvas.height
+      );
+      this.player = null;
+      this.shadowRoot.querySelector("#labelSampleName").innerHTML = "Waveform";
+    }
+
+    // Delete the samplePlayer
+    this.samplePlayers[index] = null;
+    SamplerHTMLElement.URLs[index] = "";
+    SamplerHTMLElement.name[index] = "";
+
+    // Delete the pad
+    b.innerHTML = "";
+    b.classList.remove("set");
+    b.classList.remove("selected");
+    b.classList.remove("active");
+
+    this.setDefaultPadKeyValue(index);
+    if (midiLearnText != null) {
+      b.appendChild(midiLearnText);
+    }
+  }
+
+  setPreset = () => {
+    const presetSelectMenu = this.shadowRoot.querySelector("#selectPreset");
+    PresetManager.buildPresetMenu(presetSelectMenu);
+
+    //!!for testing load the blank preset first !!
+    let currentPresetName = "Basic Kit";
+    //let currentPresetName = presetSelectMenu.value;
+
+    this.loadCurrentPreset(currentPresetName);
+    //Create Note Set
+    this.createNoteSet();
+
+    // When the preset is loaded, we load the new sounds
+    presetSelectMenu.onchange = () => {
+      // Stop all sounds
+      this.stopAllSoundsPads();
+      this.stopAllSoundsExplorer();
+      // const currentPreset = PresetManager.getPreset(presetSelectMenu.value);
+      presetSelectMenu.blur();
+      currentPresetName = presetSelectMenu.value;
+      this.loadCurrentPreset(currentPresetName);
+
+      this.initKnobs();
+    };
+  };
+
+  loadCurrentPreset(presetName, newDecodedSounds) {
+    this.shadowRoot.querySelector("#selectPreset").value = presetName;
+
+    this.plugin.audioNode.currentPreset = presetName;
+    this.plugin.audioNode.gui = this;
+
+    this.samplePlayers = [];
+    this.player = null;
+    this.canvasContext.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.canvasContextOverlay.clearRect(
+      0,
+      0,
+      this.canvas.width,
+      this.canvas.height
+    );
+
+    const label = this.shadowRoot.querySelector("#labelSampleName");
+    label.style.cursor = "default";
+
+    //reset the content of the switchpads
+    const switchPads = this.shadowRoot.querySelectorAll(".switchpad");
+    switchPads.forEach((switchPad) => {
+      switchPad.innerHTML = "";
+      switchPad.classList.remove("set");
+      switchPad.classList.remove("selected");
+      switchPad.classList.remove("active");
+    });
+
+    //reset Waveform sample label name
+    this.shadowRoot.querySelector("#labelSampleName").innerHTML = "Waveform";
+
+    //load current preset sounds
+    this.loadSounds(presetName, newDecodedSounds);
+
+    //delete preset button
+    const deletePreset = this.shadowRoot.querySelector("#deletePreset");
+    let preset;
+
+    if (localStorage.presets) {
+      preset = PresetManager.getCurrentPreset(presetName);
+    } else {
+      preset = PresetManager.getFactoryPreset(presetName);
+    }
+
+    if (preset.isFactoryPresets) {
+      deletePreset.innerHTML = "Reset preset";
+    } else if (!preset.isFactoryPresets) {
+      deletePreset.innerHTML = "Delete preset";
+    }
+
+    deletePreset.onclick = () => {
+      this.deletePreset();
+    };
+
+    //save preset button
+    const savePreset = this.shadowRoot.querySelector("#savePreset");
+    savePreset.onclick = () => {
+      this.savePreset();
+    };
+
+    //create preset button
+    const createPreset = this.shadowRoot.querySelector("#createPreset");
+    createPreset.onclick = () => {
+      this.createPreset("custom preset", switchPads);
+    };
+
+    const noteSetBtn = this.shadowRoot.querySelector("#createNoteSet");
+    noteSetBtn.disabled = true;
+    noteSetBtn.classList.add("element-disabled");
+  }
+
+  loadCurrentState(currentState) {
+    SamplerHTMLElement.URLs = changePathToAbsolute(
+      PresetManager.getPresetUrls(currentState)
+    );
+    SamplerHTMLElement.defaultName =
+      PresetManager.getPresetUrlsNames(currentState);
+
+    let bl = new BufferLoader(
+      this.plugin.audioContext,
+      SamplerHTMLElement.URLs,
+      this.shadowRoot,
+      (bufferList) => {
+        this.decodedSounds = bufferList;
+
+        this.decodedSounds.forEach((decodedSound, index) => {
+          if (decodedSound != undefined) {
+            this.samplePlayers[index] = new SamplePlayer(
+              this.plugin.audioContext,
+              this.canvas,
+              this.canvasOverlay,
+              "orange",
+              decodedSound,
+              this.plugin.audioNode,
+              0
+            );
+            if (currentState.samples[index].player) {
+              SamplerHTMLElement.name[index] =
+                currentState.samples[index].player.name;
+              SamplerHTMLElement.defaultName[index] =
+                currentState.samples[index].name;
+              this.samplePlayers[index] =
+                PresetManager.loadPlayerFromCurrentPreset(
+                  this.samplePlayers[index],
+                  index,
+                  currentState
+                );
+            } else if (currentState) {
+              SamplerHTMLElement.name[index] = currentState.samples[index].name;
+            }
+            this.setSwitchPad(index);
+            this.setDefaultPadKeyValue(index);
+            window.requestAnimationFrame(this.handleAnimationFrame);
+          }
+        });
+        for (let i = 0; i < 16; i++) {
+          const switchPad = this.shadowRoot.querySelector("#switchpad" + i);
+          switchPad.midiController = {};
+        }
+
+        //bind the midi learn into the corresponding pad
+        const switchPads = this.shadowRoot.querySelectorAll(".switchpad");
+        if (currentState.midiLearn) {
+          const switchPadsWithMidiLearn = currentState.midiLearn.filter(
+            (element) => element.cc.cc
+          );
+          switchPads.forEach((switchpad) => {
+            switchpad.midiController = {};
+            if (
+              switchPadsWithMidiLearn.find(
+                (element) => element.id === switchpad.id
+              )
+            ) {
+              switchpad.midiController.channel = currentState.midiLearn.find(
+                (element) => element.id === switchpad.id
+              ).cc.channel;
+              switchpad.midiController.cc = currentState.midiLearn.find(
+                (element) => element.id === switchpad.id
+              ).cc.cc;
+
+              this.setMidiNoteName(
+                switchpad.id.match(/\d+/g)[0],
+                switchpad.midiController.cc
+              );
+
+              localStorage.setItem(
+                "WebAudioControlsMidiLearn",
+                JSON.stringify(currentState.midiLearn)
+              );
+            }
+          });
+        }
+      }
+    );
+    bl.load();
+  }
+
+  loadSounds = (presetValue, newDecodedSounds) => {
+    SamplerHTMLElement.URLs = [];
+    SamplerHTMLElement.name = [];
+    SamplerHTMLElement.defaultName = [];
+    // On remet toutes les progress bar à 0
+    for (let i = 0; i < 16; i++) {
+      const progressBar = this.shadowRoot.querySelector("#progress" + i);
+      progressBar.value = 0;
+    }
+
+    if (localStorage.presets) {
+      // if local storage has presets item, load the selected preset saved in local storage
+      const currentPreset = PresetManager.getCurrentPreset(presetValue);
+
+      if (currentPreset) {
+        //get urls from current preset
+        let currentPresetUrls = PresetManager.getPresetUrls(currentPreset);
+        const currentPresetNames =
+          PresetManager.getPresetUrlsNames(currentPreset);
+        currentPresetUrls = changePathToAbsolute(currentPresetUrls);
+        SamplerHTMLElement.URLs = currentPresetUrls;
+        SamplerHTMLElement.defaultName = currentPresetNames;
+      }
+      let bl = new BufferLoader(
+        this.plugin.audioContext,
+        SamplerHTMLElement.URLs,
+        this.shadowRoot,
+        (bufferList) => {
+          if (newDecodedSounds) {
+            this.decodedSounds = newDecodedSounds;
+          } else {
+            this.decodedSounds = bufferList;
+          }
+
+          this.decodedSounds.forEach((decodedSound, index) => {
+            if (decodedSound != undefined) {
+              this.samplePlayers[index] = new SamplePlayer(
+                this.plugin.audioContext,
+                this.canvas,
+                this.canvasOverlay,
+                "orange",
+                decodedSound,
+                this.plugin.audioNode,
+                0
+              );
+              if (currentPreset.samples[index].player) {
+                SamplerHTMLElement.name[index] =
+                  currentPreset.samples[index].player.name;
+                SamplerHTMLElement.defaultName[index] =
+                  currentPreset.samples[index].name;
+                this.samplePlayers[index] =
+                  PresetManager.loadPlayerFromCurrentPreset(
+                    this.samplePlayers[index],
+                    index,
+                    currentPreset
+                  );
+                // this.samplePlayers[index].reversed = currentPreset.samples[index].player.reversed;
+              } else if (currentPreset) {
+                SamplerHTMLElement.name[index] =
+                  currentPreset.samples[index].name;
+              }
+              this.setSwitchPad(index);
+              this.setDefaultPadKeyValue(index);
+              window.requestAnimationFrame(this.handleAnimationFrame);
+            }
+          });
+          for (let i = 0; i < 16; i++) {
+            const switchPad = this.shadowRoot.querySelector("#switchpad" + i);
+            switchPad.midiController = {};
+          }
+          const switchPads = this.shadowRoot.querySelectorAll(".switchpad");
+          //if current preset has midi learn, load midi learn from current preset, else load default midi mapping
+          if (
+            localStorage.presets &&
+            PresetManager.getMidiLearnListFromCurrentPreset(currentPreset)
+          ) {
+            PresetManager.loadMidiControllerFromCurrentPreset(
+              currentPreset,
+              switchPads
+            );
+            switchPads.forEach((switchPad) => {
+              const index = switchPad.id.match(/\d+/g)[0];
+              const currentMidiLearn =
+                PresetManager.getMidiLearnFromCurrentPreset(
+                  currentPreset,
+                  switchPad.id
+                );
+              if (currentMidiLearn.cc.cc === undefined) {
+                if (switchPad.querySelector(".button_midi_note")) {
+                  switchPad.querySelector(".button_midi_note").remove();
+                }
+              }
+              this.setMidiNoteName(index, currentMidiLearn.cc.cc);
+            });
+          } else {
+            this.defaultMidiMapping();
+          }
+        }
+      );
+      bl.load();
+    }
+    // if local Storage doesn't have presets item, load the selected preset from factory presets
+    if (!localStorage.getItem("presets")) {
+      if (presetValue.name) {
+        presetValue = presetValue.name;
+      }
+
+      const currentPreset = PresetManager.getCurrentPreset(presetValue);
+      SamplerHTMLElement.URLs = PresetManager.getPresetUrls(currentPreset);
+      SamplerHTMLElement.URLs = changePathToAbsolute(SamplerHTMLElement.URLs);
+      SamplerHTMLElement.name = PresetManager.getPresetUrlsNames(currentPreset);
+      SamplerHTMLElement.defaultName = PresetManager.getPresetUrlsNames(
+        PresetManager.getCurrentFactoryPreset(presetValue)
+      );
+      // on charge les sons par défaut
+      let bl = new BufferLoader(
+        this.plugin.audioContext,
+        SamplerHTMLElement.URLs,
+        this.shadowRoot,
+        (bufferList) => {
+          // on a chargé les sons, on stocke sous forme de tableau
+          this.decodedSounds = bufferList;
+          // Pour chaque son on créé un SamplePlayer
+          this.decodedSounds.forEach((decodedSound, index) => {
+            // Si bufferList est vide on passe au suivant
+            if (decodedSound != undefined) {
+              this.samplePlayers[index] = new SamplePlayer(
+                this.plugin.audioContext,
+                this.canvas,
+                this.canvasOverlay,
+                "orange",
+                decodedSound,
+                this.plugin.audioNode,
+                0
+              );
+              this.setSwitchPad(index);
+              this.setDefaultPadKeyValue(index);
+              window.requestAnimationFrame(this.handleAnimationFrame);
+            }
+          });
+          for (let i = 0; i < 16; i++) {
+            const switchPad = this.shadowRoot.querySelector("#switchpad" + i);
+            switchPad.midiController = {};
+          }
+          this.defaultMidiMapping();
+        }
+      );
+
+      bl.load();
+      if (!newDecodedSounds) this.defaultMidiMapping();
+    }
+    this.defaultMidiMapping();
+    this.setDefaultPadsKeyValue();
+  };
+
+  promptUser = async () => {
+    if (!this.shadowRoot.querySelector("html-prompt")) {
+      const resultExplorerPads =
+        this.shadowRoot.querySelectorAll(".resultExplorer");
+      //hide all resultExplorerPads
+      resultExplorerPads.forEach((resultExplorerPad) => {
+        resultExplorerPad.style.display = "none";
+      });
+
+      let promptElement = document.createElement("html-prompt");
+      this.shadowRoot.querySelector("#results").append(promptElement);
+
+      //display explorer choice and hide the others
+      const knob = this.shadowRoot.querySelector("#choiceKnobs");
+      const explorer = this.shadowRoot.querySelector("#choiceExplorer");
+      const MIDI = this.shadowRoot.querySelector("#choiceMIDI");
+
+      const divKnob = this.shadowRoot.querySelector("#knobs");
+      const divExplorer = this.shadowRoot.querySelector("#explorer");
+      const divMIDI = this.shadowRoot.querySelector("#MIDI");
+
+      explorer.classList.add("choose");
+
+      divKnob.style.display = "none";
+      divExplorer.style.display = "inline-block";
+      divMIDI.style.display = "none";
+
+      knob.classList.remove("choose");
+      explorer.classList.add("choose");
+      MIDI.classList.remove("choose");
+
+      promptElement.addEventListener("focus", (e) => {
+        console.log("focus");
+        this.enableKeyboard = false;
+      });
+      promptElement.addEventListener("promptClosed", (e) => {
+        this.enableKeyboard = true;
+        this.shadowRoot.querySelector("#sampler").focus();
+      });
+      const response = await promptElement.showPrompt("Enter preset name!");
+
+      resultExplorerPads.forEach((resultExplorerPad) => {
+        resultExplorerPad.style.display = "inline-block";
+      });
+      return response;
+    }
+  };
+
+  createNoteSet = () => {
+    const noteSetBtn = this.shadowRoot.querySelector("#createNoteSet");
+    const selectMenuScale = this.shadowRoot.querySelector("#selectNoteSet");
+    const switchPads = this.shadowRoot.querySelectorAll(".switchpad");
+
+    NoteSet.buildScaleMenu(selectMenuScale);
+
+    if (!this.player || selectMenuScale.value === "") {
+      noteSetBtn.disabled = true;
+      noteSetBtn.classList.add("element-disabled");
+    }
+    selectMenuScale.onchange = () => {
+      if (selectMenuScale.value === "") {
+        noteSetBtn.disabled = true;
+      } else {
+        if (this.player) {
+          noteSetBtn.disabled = false;
+          noteSetBtn.classList.remove("element-disabled");
+        }
+      }
+    };
+
+    switchPads.forEach((switchPad) => {
+      switchPad.onclick = () => {
+        if (selectMenuScale.value !== "") {
+          noteSetBtn.disabled = false;
+          noteSetBtn.classList.remove("element-disabled");
+        }
+      };
+    });
+
+    noteSetBtn.onclick = async () => {
+      if (!this.player) {
+        return;
+      }
+      const currentPlayer = this.player;
+
+      if (selectMenuScale.value === "") return;
+
+      const switchPads = this.shadowRoot.querySelectorAll(".switchpad");
+      let presetName;
+
+      if (this.promptAvailable) {
+        presetName = prompt("Preset name :");
+
+        let stopExecution = false;
+
+        if (presetName === "") {
+          alert("Error : preset name can't be empty");
+          stopExecution = true;
+          return;
+        }
+        // if the preset name already exists, we ask the user if he wants to overwrite it
+        else if (PresetManager.getCurrentPreset(presetName)) {
+          // alert("Error : this preset name already exists");
+          if (
+            !confirm(
+              "This preset name already exists. Do you want to overwrite it ?"
+            )
+          ) {
+            stopExecution = true;
+            return;
+          } else {
+            PresetManager.removePreset(presetName);
+          }
+        } else if (presetName === null) {
+          // Si l'utilisateur annule la saisie
+          stopExecution = true;
+          return;
+        }
+
+        if (stopExecution) {
+          return;
+        }
+      } else {
+        const response = await this.promptUser();
+        if (response === "" || !response) return;
+        if (PresetManager.getCurrentPreset(response))
+          PresetManager.removePreset(response);
+        presetName = response;
+      }
+
+      //change the index of the player in the samplePlayers array
+      const playerIndex = this.samplePlayers.indexOf(currentPlayer);
+
+      this.swapSample(playerIndex, 7);
+      const fundamentalIndex = 7;
+
+      this.samplePlayers.forEach((player, index) => {
+        if (player && player !== currentPlayer) {
+          //clean samplePlayer
+          this.deleteSample(index);
+        }
+      });
+
+      let namePlayer = SamplerHTMLElement.name[fundamentalIndex];
+      let rootNoteName;
+      if (namePlayer.match(/(?:^|\s)([A-G][#b]?[0-9]?)(?=\s|$)/)) {
+        rootNoteName = namePlayer.match(
+          /(?:^|\s)([A-G][#b]?[0-9]?)(?=\s|$)/
+        )[0];
+        //delete space
+        rootNoteName = rootNoteName.replace(/\s/g, "");
+        //By default the octave is 4
+        if (!rootNoteName.match(/[0-9]/)) {
+          const octave = "4";
+          SamplerHTMLElement.name[fundamentalIndex] =
+            SamplerHTMLElement.name[fundamentalIndex] + octave;
+        }
+      } else {
+        //By default the root note is C4
+        rootNoteName = "C4";
+        namePlayer = namePlayer + " " + rootNoteName;
+        SamplerHTMLElement.name[fundamentalIndex] = namePlayer;
+      }
+
+      const scales = NoteSet.getScales();
+
+      const currentScale = scales.find(
+        (scale) => scale.name === selectMenuScale.value
+      );
+      if (!currentScale) return;
+
+      const ascendingNotesSemitones = currentScale.notes.ascending.map(
+        (note) => note.semitones
+      );
+      const descendingNotesSemitones = currentScale.notes.descending.map(
+        (note) => note.semitones
+      );
+
+      const newNamesScale = NoteSet.changeScaleNoteName(
+        ascendingNotesSemitones,
+        descendingNotesSemitones,
+        rootNoteName
+      );
+      this.setNoteValue(fundamentalIndex, newNamesScale.ascending[0]);
+
+      //if the root player is pitched, we need to pitch the new players
+      const newPlayer = new SamplePlayer(
+        this.plugin.audioContext,
+        this.canvas,
+        this.canvasOverlay,
+        "orange",
+        currentPlayer.newDecodedSound,
+        this.plugin.audioNode,
+        currentPlayer.semitones
+      );
+      newPlayer.decodedSound = newPlayer.newDecodedSound;
+      newPlayer.semitones = 0;
+      this.setKnobsEffects();
+      this.samplePlayers[fundamentalIndex] = newPlayer;
+      this.samplePlayers[fundamentalIndex] = NoteSet.setEffectsSamplePlayer(
+        this.samplePlayers[fundamentalIndex],
+        currentPlayer
+      );
+
+      let indexAscending = 1;
+      for (let i = fundamentalIndex + 1; i < switchPads.length; i++) {
+        this.samplePlayers[i] = new SamplePlayer(
+          this.plugin.audioContext,
+          this.canvas,
+          this.canvasOverlay,
+          "orange",
+          newPlayer.newDecodedSound,
+          this.plugin.audioNode,
+          0
+        );
+        SamplerHTMLElement.name[i] = namePlayer.replace(
+          rootNoteName,
+          newNamesScale.ascending[indexAscending]
+        );
+        SamplerHTMLElement.defaultName[i] =
+          SamplerHTMLElement.defaultName[fundamentalIndex];
+        SamplerHTMLElement.URLs[i] = SamplerHTMLElement.URLs[fundamentalIndex];
+
+        this.samplePlayers[i] = NoteSet.setEffectsSamplePlayer(
+          this.samplePlayers[i],
+          currentPlayer
+        );
+
+        this.samplePlayers[i].semitones =
+          ascendingNotesSemitones[indexAscending];
+        this.setSwitchPad(i);
+        this.setNoteValue(i, newNamesScale.ascending[indexAscending]);
+        indexAscending++;
+      }
+
+      let indexDescending = 1;
+      for (let i = fundamentalIndex - 1; i >= 0; i--) {
+        this.samplePlayers[i] = new SamplePlayer(
+          this.plugin.audioContext,
+          this.canvas,
+          this.canvasOverlay,
+          "orange",
+          newPlayer.newDecodedSound,
+          this.plugin.audioNode,
+          0
+        );
+        SamplerHTMLElement.name[i] = namePlayer.replace(
+          rootNoteName,
+          newNamesScale.descending[indexDescending]
+        );
+        SamplerHTMLElement.defaultName[i] =
+          SamplerHTMLElement.defaultName[fundamentalIndex];
+        SamplerHTMLElement.URLs[i] = SamplerHTMLElement.URLs[fundamentalIndex];
+
+        this.samplePlayers[i] = NoteSet.setEffectsSamplePlayer(
+          this.samplePlayers[i],
+          currentPlayer
+        );
+
+        this.samplePlayers[i].semitones =
+          descendingNotesSemitones[indexDescending];
+        this.setSwitchPad(i);
+        this.setNoteValue(i, newNamesScale.descending[indexDescending]);
+        indexDescending++;
+      }
+
+      this.setDefaultPadsKeyValue();
+
+      PresetManager.createPreset(
+        presetName,
+        "noteSet",
+        this.samplePlayers,
+        SamplerHTMLElement,
+        switchPads
+      );
+      PresetManager.saveAllPresets();
+      const presetSelectMenu = this.shadowRoot.querySelector("#selectPreset");
+      PresetManager.buildPresetMenu(presetSelectMenu);
+
+      const newDecodedSounds = [];
+      this.samplePlayers.forEach((player, index) => {
+        if (player) {
+          newDecodedSounds[index] = player.decodedSound;
+        }
+      });
+      this.loadCurrentPreset(presetName, newDecodedSounds);
+
+      this.shadowRoot.querySelector("#selectPreset").value = presetName;
+    };
+  };
+
+  createPreset = async (type, switchPads) => {
+    this.initKnobs();
+    let presetName;
+
+    if (this.promptAvailable) {
+      // Get the preset name
+      presetName = prompt("Preset name :");
+
+      //if the preset name is empty, we stop the execution
+      if (presetName === "") {
+        alert("Error : preset name can't be empty");
+        return;
+      }
+      // If the preset name already exists, we ask the user if he wants to overwrite it
+      else if (PresetManager.getCurrentPreset(presetName)) {
+        // alert("Error : this preset name already exists");
+        if (
+          confirm(
+            "This preset name already exists. Do you want to overwrite it ?"
+          )
+        ) {
+          PresetManager.removePreset(presetName);
+          PresetManager.createPreset(
+            presetName,
+            type,
+            this.samplePlayers,
+            SamplerHTMLElement,
+            switchPads
+          );
+          PresetManager.saveAllPresets();
+          return;
+        } else return;
+      } else if (presetName === null) {
+        // If the user cancels the input
+        return;
+      } else {
+        PresetManager.createPreset(
+          presetName,
+          type,
+          this.samplePlayers,
+          SamplerHTMLElement,
+          switchPads
+        );
+        PresetManager.saveAllPresets();
+      }
+    } else {
+      const response = await this.promptUser();
+      if (response === "") return;
+      if (PresetManager.getCurrentPreset(response))
+        PresetManager.removePreset(response);
+      presetName = response;
+      PresetManager.createPreset(
+        presetName,
+        type,
+        this.samplePlayers,
+        SamplerHTMLElement,
+        switchPads
+      );
+      PresetManager.saveAllPresets();
+    }
+
+    const presetSelectMenu = this.shadowRoot.querySelector("#selectPreset");
+    PresetManager.buildPresetMenu(presetSelectMenu);
+
+    this.loadCurrentPreset(presetName);
+    this.shadowRoot.querySelector("#selectPreset").value = presetName;
+  };
+
+  savePreset = () => {
+    this.initKnobs();
+    const preset = this.shadowRoot.querySelector("#selectPreset");
+    const presetName = preset.value;
+    PresetManager.savePresets(
+      presetName,
+      this.samplePlayers,
+      SamplerHTMLElement
+    );
+
+    this.loadCurrentPreset(presetName);
+  };
+
+  getCurrentState = (presetName, samplePlayers) => {
+    this.plugin.audioNode.currentPreset = presetName;
+    this.plugin.audioNode.gui = this;
+
+    const currentState = structuredClone(
+      PresetManager.getCurrentPreset(presetName)
+    );
+    // console.log(currentState);
+
+    currentState.samples = PresetManager.newSamples(
+      SamplerHTMLElement.URLs,
+      SamplerHTMLElement.name,
+      SamplerHTMLElement.defaultName,
+      samplePlayers
+    );
+    currentState.midiLearn = PresetManager.getMidiPresetsFromLocalStorage();
+    return currentState;
+  };
+
+  deletePreset = () => {
+    this.initKnobs();
+    this.stopAllSoundsPads();
+    this.stopAllSoundsExplorer();
+    const preset = this.shadowRoot.querySelector("#selectPreset").value;
+    const presetSelectMenu = this.shadowRoot.querySelector("#selectPreset");
+    const switchPads = this.shadowRoot.querySelectorAll(".switchpad");
+
+    if (PresetManager.isFactoryPreset(preset)) {
+      PresetManager.resetPreset(preset);
+      this.loadCurrentPreset(preset);
+    } else {
+      PresetManager.removePreset(preset);
+      PresetManager.resetAllMidiLearning();
+
+      PresetManager.buildPresetMenu(presetSelectMenu);
+
+      this.loadCurrentPreset(presetSelectMenu.value);
+    }
+  };
+
+  noteOnKey = (padbutton) => {
+    const numberRegex = /\d+/g;
+    const padIndex = +padbutton.id.match(numberRegex)[0];
+
+    //call setValue method from webaudio-controls to change the Gui when key is pressed
+    if (padbutton.nodeName === "WEBAUDIO-SWITCH") padbutton.setValue(1);
+
+    this.player = this.samplePlayers[padIndex];
+    if (!this.player) return;
+
+    this.shadowRoot.querySelector("#labelSampleName").innerHTML =
+      padbutton.innerHTML.split("<")[0];
+
+    this.setKnobsEffects();
+
+    this.player.drawWaveform();
+
+    this.player.stop();
+    this.player.play();
+
+    const buttons = this.shadowRoot.querySelectorAll(".switchpad");
+    buttons.forEach((button) => {
+      button.classList.remove("selected");
+    });
+
+    const buttonsExplorer = this.shadowRoot.querySelectorAll(".resultButton");
+    buttonsExplorer.forEach((button) => {
+      button.classList.remove("selected");
+    });
+
+    padbutton.classList.add("selected");
+
+    this.setLabel(padIndex, padbutton);
+  };
+
+  noteOffKey = (padbutton) => {
+    //call setValue method from webaudio-controls to change the Gui when key is up
+    if (padbutton.nodeName === "WEBAUDIO-SWITCH") padbutton.setValue(0);
+
+    const numberRegex = /\d+/g;
+    const padIndex = +padbutton.id.match(numberRegex)[0];
+    if (!padbutton) return;
+    padbutton.classList.remove("active");
+    this.player = this.samplePlayers[padIndex];
+    if (!this.player) return;
+    if (this.player.enableAdsr) {
+      this.player.releaseEnv();
+    }
+  };
+
+  setKeyboardPress() {
+    const enableKeysBtn = this.shadowRoot.querySelector("#enableKeyboard");
+    let localEnableKeyboard = false;
+    enableKeysBtn.addEventListener("click", (e) => {
+      if (localEnableKeyboard) {
+        localEnableKeyboard = false;
+        enableKeysBtn.textContent = "Keyboard OFF";
+        enableKeysBtn.classList.remove("choose");
+      } else {
+        localEnableKeyboard = true;
+        enableKeysBtn.textContent = "Keyboard ON";
+        enableKeysBtn.classList.add("choose");
+      }
+    });
+    this.shadowRoot.addEventListener("keydown", (e) => {
+      if (!this.enableKeyboard || !localEnableKeyboard) return;
+      //cancel the event if it's a repeat -> sample playing in loop
+      if (e.repeat) {
+        e.preventDefault();
+        return;
+      }
+      switch (e.code) {
+        case "Digit1":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad12"));
+          break;
+        case "Digit2":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad13"));
+          break;
+        case "Digit3":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad14"));
+          break;
+        case "Digit4":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad15"));
+          break;
+        case "KeyQ":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad8"));
+          break;
+        case "KeyW":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad9"));
+          break;
+        case "KeyE":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad10"));
+          break;
+        case "KeyR":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad11"));
+          break;
+        case "KeyA":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad4"));
+          break;
+        case "KeyS":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad5"));
+          break;
+        case "KeyD":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad6"));
+          break;
+        case "KeyF":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad7"));
+          break;
+        case "KeyZ":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad0"));
+          break;
+        case "KeyX":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad1"));
+          break;
+        case "KeyC":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad2"));
+          break;
+        case "KeyV":
+          this.noteOnKey(this.shadowRoot.querySelector("#switchpad3"));
+          break;
+      }
+    });
+
+    this.shadowRoot.addEventListener("keyup", (e) => {
+      switch (e.code) {
+        case "Digit1":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad12"));
+          break;
+        case "Digit2":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad13"));
+          break;
+        case "Digit3":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad14"));
+          break;
+        case "Digit4":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad15"));
+          break;
+        case "KeyQ":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad8"));
+          break;
+        case "KeyW":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad9"));
+          break;
+        case "KeyE":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad10"));
+          break;
+        case "KeyR":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad11"));
+          break;
+        case "KeyA":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad4"));
+          break;
+        case "KeyS":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad5"));
+          break;
+        case "KeyD":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad6"));
+          break;
+        case "KeyF":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad7"));
+          break;
+        case "KeyZ":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad0"));
+          break;
+        case "KeyX":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad1"));
+          break;
+        case "KeyC":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad2"));
+          break;
+        case "KeyV":
+          this.noteOffKey(this.shadowRoot.querySelector("#switchpad3"));
+          break;
+      }
+    });
+  }
+
+  setVelocity() {
+    const velocityBtn = this.shadowRoot.querySelector("#enableVelocity");
+    velocityBtn.onclick = () => {
+      if (!this.enableVelocity) {
+        velocityBtn.classList.add("choose");
+        velocityBtn.innerHTML = "Velocity ON";
+        this.enableVelocity = true;
+      } else {
+        velocityBtn.classList.remove("choose");
+        velocityBtn.innerHTML = "Velocity OFF";
+        this.enableVelocity = false;
+      }
+    };
+  }
+
+  setupMidiListeners(audioNode) {
+    console.log("setupMIDIEvents called at " + Date.now());
+    const wamNode = audioNode._wamNode;
+    wamNode.addEventListener("wam-midi", (e) =>
+      this.processMIDIEvents([{ event: e.detail.data.bytes, time: 0 }])
+    );
+  }
+
+  processMIDIEvents(midiEvents, enableVelocity) {
+    // console.log("processMIDIEvents called at " + Date.now());
+    // console.log("midiEvents:", midiEvents);
+
+    midiEvents.forEach((message) => {
+      if (message.event[0] === MIDI.NOTE_ON && message.event[2] !== 0) {
+        let midiNote = message.event[1];
+        let velocity = message.event[2];
+        this.updateMidiNoteValue(midiNote);
+        this.noteOn(midiNote, message.time, velocity);
+        //if midi controller has no noteOff
+        // if (velocity > 0) this.noteOn(midiNote, message.time)
+        // else this.noteOff(midiNote, message.time)
+      } else if (
+        message.event[0] === MIDI.NOTE_OFF ||
+        (message.event[0] === MIDI.NOTE_ON && message.event[2] === 0)
+      ) {
+        // NOTE_ON avec velocity 0 = NOTE_OFF
+        let midiNote = message.event[1];
+        this.noteOff(midiNote, message.time);
+      } else if (
+        message.event[0] >= MIDI.CC &&
+        message.event[0] < MIDI.CC + 16
+      ) {
+        let controlId = message.event[0];
+        let ccValue = message.event[2];
+        this.controlChange(controlId, ccValue);
+      }
+    });
+  }
+
+  controlChange(controlId, ccValue) {
+    if (!this.player) return;
+    const samplePlayer = this.player;
+    // console.log("controlChange", controlId, ccValue)
+
+    if (controlId == this.controlBindings.get("volume")) {
+      samplePlayer.effects.volumeGain = parseFloat(ccValue / 127);
+      this.shadowRoot.querySelector("#knob1").value = parseFloat(ccValue / 127);
+    }
+    if (controlId == this.controlBindings.get("pan")) {
+      samplePlayer.effects.pan = parseFloat((ccValue / 127) * 2 - 1);
+      this.shadowRoot.querySelector("#knob2").value = parseFloat(
+        (ccValue / 127) * 2 - 1
+      );
+    }
+
+    if (controlId == this.controlBindings.get("tone")) {
+      samplePlayer.effects.tone = parseFloat((ccValue / 127) * 2 - 1);
+      this.shadowRoot.querySelector("#knob3").value = parseFloat(
+        (ccValue / 127) * 2 - 1
+      );
+    }
+
+    if (controlId == this.controlBindings.get("pitch")) {
+      samplePlayer.semitones = parseInt(((ccValue / 127) * 2 - 1) * 24);
+      this.shadowRoot.querySelector("#knobPitch").value = parseInt(
+        ((ccValue / 127) * 2 - 1) * 24
+      );
+    }
+
+    //adsr
+    if (controlId == this.controlBindings.get("attack")) {
+      samplePlayer.effects.attackValue = parseFloat((ccValue / 127) * 2);
+      this.shadowRoot.querySelector("#knobAttack").value =
+        parseFloat(ccValue / 127) * 2;
+    }
+
+    if (controlId == this.controlBindings.get("decay")) {
+      samplePlayer.effects.decayValue = parseFloat(ccValue / 127);
+      this.shadowRoot.querySelector("#knobDecay").value = parseFloat(
+        ccValue / 127
+      );
+    }
+
+    if (controlId == this.controlBindings.get("sustain")) {
+      samplePlayer.effects.sustainValue = parseFloat(ccValue / 127);
+      this.shadowRoot.querySelector("#knobSustain").value = parseFloat(
+        ccValue / 127
+      );
+    }
+
+    if (controlId == this.controlBindings.get("release")) {
+      samplePlayer.effects.releaseValue = parseFloat((ccValue / 127) * 2);
+      this.shadowRoot.querySelector("#knobRelease").value =
+        parseFloat(ccValue / 127) * 2;
+    }
+  }
+
+  noteOn(note, tickStartTime, velocity) {
+    // console.log("noteOn", note, tickStartTime)
+    const presetValue = this.shadowRoot.querySelector("#selectPreset").value;
+
+    let currentPad;
+    let padIndex;
+
+    const numberRegex = /\d+/g;
+
+    if (localStorage.getItem("WebAudioControlsMidiLearn")) {
+      //get current midi learn binding from local storage
+      let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
+      let listMidiLearn = JSON.parse(stockMidiLearn);
+
+      // get the pad corresponding to the note passed in parameter
+      currentPad = listMidiLearn.find((pad) => pad.cc.cc === note);
+
+      if (!currentPad) return;
+
+      padIndex = +currentPad.id.match(numberRegex)[0];
+      this.setMidiNoteName(padIndex, note);
+    }
+
+    //if local storage is empty
+    else {
+      const switchpads = this.shadowRoot.querySelectorAll("webaudio-switch");
+      switchpads.forEach((pad) => {
+        if (pad.midiController.cc === note) {
+          currentPad = pad;
+        }
+      });
+      if (currentPad === undefined) return;
+      // filter the number in the id of the pad
+      padIndex = +currentPad.id.match(numberRegex)[0];
+    }
+
+    const padbutton = this.shadowRoot.querySelector("#switchpad" + padIndex);
+    if (padbutton.nodeName === "WEBAUDIO-SWITCH") padbutton.value = 1;
+
+    this.player = this.samplePlayers[padIndex];
+
+    // if the player doesn't exist, we stop the function
+    if (!this.player) return;
+
+    //Display the current pad name over the waveform
+    const currentSwitchPad = this.shadowRoot.querySelector(
+      "#switchpad" + padIndex
+    );
+
+    // console.log(currentSwitchPad.midiController);
+
+    const switchPadName = currentSwitchPad.querySelector("p").innerHTML;
+    this.shadowRoot.querySelector("#labelSampleName").innerHTML = switchPadName;
+
+    this.setKnobsEffects();
+
+    //if velocity is On
+    if (this.enableVelocity) {
+      //set velocity to volumeGain
+      this.player.effects.volumeGain = parseFloat(velocity / 127);
+      this.shadowRoot.querySelector("#knob1").value = parseFloat(
+        velocity / 127
+      );
+    } else {
+      this.shadowRoot.querySelector("#knob1").value = 0.5;
+    }
+
+    this.player.drawWaveform();
+
+    this.player.stop();
+    this.player.play();
+
+    //remove selected class from all switchpads
+    const switchPads = this.shadowRoot.querySelectorAll(".switchpad");
+    switchPads.forEach((switchPad) => {
+      switchPad.classList.remove("selected");
+    });
+
+    //add selected class to the current switchpad played
+    currentSwitchPad.classList.add("selected");
+
+    // On enleve la class .selected de tous les button de l'explorer
+    const buttonsExplorer = this.shadowRoot.querySelectorAll(".resultButton");
+    buttonsExplorer.forEach((button) => {
+      button.classList.remove("selected");
+    });
+
+    //now we can rename the pad
+    this.setLabel(padIndex, currentSwitchPad);
+  }
+
+  noteOff(note, tickStartTime) {
+    if (!localStorage.getItem("WebAudioControlsMidiLearn")) return;
+    //get current midi learn binding from local storage
+    let stockMidiLearn = localStorage.getItem("WebAudioControlsMidiLearn");
+    let listMidiLearn = JSON.parse(stockMidiLearn);
+
+    // get the pad corresponding to the note passed in parameter
+    let currentPad = listMidiLearn.find((pad) => pad.cc.cc === note);
+
+    if (!currentPad) return;
+
+    // filter the number in the id of the pad
+    const numberRegex = /\d+/g;
+    const padIndex = +currentPad.id.match(numberRegex)[0];
+
+    const padbutton = this.shadowRoot.querySelector("#switchpad" + padIndex);
+    if (padbutton.nodeName === "WEBAUDIO-SWITCH") padbutton.value = 0;
+
+    if (!this.shadowRoot.querySelector("#switchpad" + padIndex)) return;
+    this.shadowRoot
+      .querySelector("#switchpad" + padIndex)
+      .classList.remove("active");
+    this.player = this.samplePlayers[padIndex];
+    if (!this.player || !this.player.enableAdsr) {
+      return;
+    }
+    if (this.player.enableAdsr) this.player.releaseEnv();
+  }
+
+  // name of the custom HTML element associated
+  // with the plugin. Will appear in the DOM if
+  // the plugin is visible
+  static is() {
+    return "sampler-html-element-without-builder";
+  }
 }
 
 if (!customElements.get(SamplerHTMLElement.is())) {
-	customElements.define(SamplerHTMLElement.is(), SamplerHTMLElement);
+  customElements.define(SamplerHTMLElement.is(), SamplerHTMLElement);
 }
