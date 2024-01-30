@@ -1,21 +1,24 @@
 # Wam-Sampler
 
-A Web Audio Module Sampler written in vanilla JavaScript and Web Components :
+A Web Audio Module Sampler written in vanilla JavaScript and Web Components.
 ![WAM-Sampler](./images/WAM_Sampler_Screenshot.png)
 
-A live demo is available here : https://quentinplet.github.io/Sampler-WAM/
+A live demo is available here : https://quentinplet.github.io/Wam-Sampler/
 
 ## Description
 
-A Virtual Musical Instrument writing in JavaScript and running in a browser. You can trigger sounds (drum samples, piano notes) by clicking on the pads or press the corresponding keyboard key. Each pad can be switched with others by drag and drop.
+A Virtual Musical Instrument writing in JavaScript and running in a browser. You can trigger sounds (drum samples, piano notes...) by clicking on the pads or press the corresponding keyboard key. Each pad can be switched with others by drag and drop.
+
+You can rename any samples by double-clicking on its name above the waveform.
+
 It supports MIDI keyboards and the MIDI routing can be configured manually by right-clicking on a pad.
-You can manually save your actual configuration (samples pads location, effects and MIDI bindings) into a preset in the local storage. By default, several factory presets are available in the preset list.
+You can manually save your current configuration (samples pads location, effects and MIDI bindings) into a preset in the local storage. By default, several factory presets are available in the preset list.
 
 ## Usage
 
 WAM-Sampler is part of the WAM (Web Audio Modules) instruments and effects community : https://github.com/webaudiomodules
 
-It aims to be used in musical online environments or playgrounds that accepts the WAMs configuration, like [SequencerParty](https://sequencer.party/) or [WAM-studio](https://github.com/Brotherta/wam-studio).
+It aims to be used in musical online environments or playgrounds that accepts the WAMs configuration, like [SequencerParty](https://sequencer.party/) or [Wam-studio](https://github.com/Brotherta/wam-studio).
 
 ### Freesound explorer
 
@@ -36,17 +39,18 @@ The [webaudio-controls](https://github.com/g200kg/webaudio-controls) library is 
 
 ### Create a scale
 
-By clicking on a pad, you can then select the scale you want and click on 'Create Note Set.' A brand new list of pad samples will be automatically configured with the notes of the scale and corresponding MIDI bindings.
+By clicking on a pad, you can select the scale you want and click on 'Create Note Set.' A brand new list of pad samples will be automatically configured with the notes of the scale and corresponding MIDI bindings.
 
 ### Effects
 
 Each effect is independent of the others and affects only the currently selected sample.
+On the waveform, you can select the start and end points of the sample by moving the right or left cursor.
 
 ## Run Locally
 
 The easiest solution is to use [serve](https://www.npmjs.com/package/serve), a web server developed in the Node.js environment.
 
-1. Install Node and NPM
+1. If not already, install Node and NPM
 2. Clone the git repository
 3. Navigate to the directory
 4. Install serve `npm install serve`
