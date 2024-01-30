@@ -1,0 +1,7 @@
+nodes_modules/
+test_GUI.html
+test_preset.html
+test.html
+.DS_Store
+*.log
+
