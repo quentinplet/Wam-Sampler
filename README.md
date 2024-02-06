@@ -30,6 +30,10 @@ You can search for any samples you want using the search bar within the Freesoun
 
 You can select and play any samples by clicking on explorer green buttons. To add the selected sample into the sampler, just drag on drop the sample you want onto any sampler pad.
 
+### Keyboard
+
+To enable keyboard keys, click on the MIDI/Keyboard tab, then on the "Keyboard" button.
+
 ### MIDI routing
 
 Currently only works with Chrome or Mozilla.
@@ -39,7 +43,7 @@ The [webaudio-controls](https://github.com/g200kg/webaudio-controls) library is 
 
 ### Create a scale
 
-By clicking on a pad, you can select the scale you want and click on 'Create Note Set.' A brand new list of pad samples will be automatically configured with the notes of the scale and corresponding MIDI bindings.
+By clicking on a pad, you can select the scale you want and click on 'Create Note Set.' Then, enter a preset name in the new input field to create a new preset. A brand new list of pad samples will be automatically configured with the notes of the scale and corresponding MIDI bindings.
 
 ### Effects
 
